@@ -11,18 +11,20 @@ Versão caseira do jogo de cartas Munchkin, para jogar com os amigos. As regras 
 
 ## Arquitetura
 
-Monólito em camadas. Pacote base: `ivens.versao.casa.munchkin`.
+Monólito em camadas, organizado em pastas por funcionalidade. Pacote base: `ivens.versao.casa.munchkin`.
 
 ```
-model       → entidades JPA e enums
-dto         → DTOs de entrada/saída das telas e os DtoMappers (model ↔ dto)
-repository  → acesso a dados (Spring Data JPA)
-service     → regras do jogo e de negócio (toda lógica fica aqui)
-web         → controllers (endpoints): recebem a requisição, validam a entrada, devolvem a view Thymeleaf
-config      → configuração de infraestrutura (segurança, log e afins)
-exception/
-  GlobalExceptionHandler  → @ControllerAdvice, trata todas as exceções
-  exceptions/             → exceções do jogo (ex.: JogadorNaoEncontradoException)
+<funcionalidade>/   → ex.: munchkin/ (depois carta/, monstro/, combate/...)
+  model/            → entidades JPA e enums
+  dto/              → DTOs de entrada/saída das telas e os DtoMappers (model ↔ dto)
+  repository/       → acesso a dados (Spring Data JPA)
+  service/          → regras do jogo e de negócio (toda lógica fica aqui); subpasta quando houver Strategy (ex.: service/raca/)
+  web/              → controllers (endpoints): recebem a requisição, validam a entrada, devolvem a view Thymeleaf
+  exception/        → exceções da funcionalidade (ex.: MunchkinNaoEncontradoException)
+jogo/               → regras gerais do jogo, que não são de uma funcionalidade (RegrasBasicas, Dado)
+web/                → telas gerais, que não são de uma funcionalidade (ex.: HomeWeb)
+config/             → configuração de infraestrutura (segurança, log e afins)
+exception/GlobalExceptionHandler → @ControllerAdvice único, trata as exceções de todas as funcionalidades
 ```
 
 Camadas (cada uma só fala com a de baixo):
@@ -38,10 +40,19 @@ A camada de apresentação não é só o pacote `web`: os templates (views) e os
 
 Regras:
 - Fluxo: web (controller) → service → repository. Nunca controller → repository.
+- Uma funcionalidade usa outra pelo service (ex.: `FugaService` → `RacaService`), nunca pelo repository dela.
 - Controller não tem regra de jogo. Model não vai direto para a view: converter com o DtoMapper.
 - Transação (`@Transactional`) fica no service.
-- Service lança exceção de `exception/exceptions`; quem trata é o `GlobalExceptionHandler`. Nada de try/catch no controller.
+- Service lança exceção do `exception/` da funcionalidade; quem trata é o `GlobalExceptionHandler`. Nada de try/catch no controller.
 - Templates em `src/main/resources/templates/`, CSS/JS/imagens em `src/main/resources/static/`.
+
+## Regras do jogo
+
+- Fonte: o texto das cartas em `static/img/cartas/`. O que não está na carta é regra geral: perguntar antes de assumir.
+- `static/img/` está no `.gitignore`: o texto da habilidade vai no Javadoc da classe da regra.
+- Regra que varia por tipo (raça, depois classe) usa Strategy: interface com a regra padrão nos métodos `default`, um `@Component` por tipo sobrescrevendo só o que muda, e um service que escolhe. A aplicação não sobe se faltar regra para algum tipo.
+- Números das regras básicas (limite da mão, mínimo para fugir...) ficam em `jogo/service/RegrasBasicas`, nunca soltos no código.
+- Sorte sempre pelo `Dado` injetado, nunca `Random` direto (o teste fixa o valor).
 
 ## Comandos
 
@@ -68,6 +79,7 @@ Playwright (MCP) não faz parte da suíte: só é usado quando o usuário pedir 
 
 Regras:
 - Toda regra de jogo nova tem teste de código.
+- Toda regra de tipo (raça, classe) tem seu próprio teste, com os casos de limite (ex.: nível 9/10/15/16).
 - Toda tela nova ou alterada tem imagem base e teste de tela.
 - Testes de tela em `src/test/java/.../tela/`; os de código espelham o pacote da classe testada.
 
