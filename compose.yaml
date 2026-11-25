@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: munchkin-postgres
+    environment:
+      POSTGRES_DB: munchkin
+      POSTGRES_USER: postgresql
+      POSTGRES_PASSWORD: postgresql
+    ports:
+      - "5432:5432"
+    volumes:
+      - munchkin-pgdata:/var/lib/postgresql
+    restart: unless-stopped
+
+volumes:
+  munchkin-pgdata:
