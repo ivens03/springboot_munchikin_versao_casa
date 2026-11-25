@@ -18,14 +18,26 @@ model       → entidades JPA e enums
 dto         → DTOs de entrada/saída das telas e os DtoMappers (model ↔ dto)
 repository  → acesso a dados (Spring Data JPA)
 service     → regras do jogo e de negócio (toda lógica fica aqui)
-controller  → recebe a requisição, valida a entrada, devolve a view Thymeleaf
+web         → controllers (endpoints): recebem a requisição, validam a entrada, devolvem a view Thymeleaf
+config      → configuração de infraestrutura (segurança, log e afins)
 exception/
   GlobalExceptionHandler  → @ControllerAdvice, trata todas as exceções
   exceptions/             → exceções do jogo (ex.: JogadorNaoEncontradoException)
 ```
 
+Camadas (cada uma só fala com a de baixo):
+
+```
+apresentação → web/ + dto/ + templates/ + static/   (o que o usuário acessa)
+negócio      → service/
+dados        → repository/
+model/       → entidades usadas pelas camadas
+```
+
+A camada de apresentação não é só o pacote `web`: os templates (views) e os estáticos ficam em `resources/` por não serem Java, mas fazem parte dela. Template só é acessado via controller; o que está em `static/` é servido direto pela URL.
+
 Regras:
-- Fluxo: controller → service → repository. Nunca controller → repository.
+- Fluxo: web (controller) → service → repository. Nunca controller → repository.
 - Controller não tem regra de jogo. Model não vai direto para a view: converter com o DtoMapper.
 - Transação (`@Transactional`) fica no service.
 - Service lança exceção de `exception/exceptions`; quem trata é o `GlobalExceptionHandler`. Nada de try/catch no controller.
