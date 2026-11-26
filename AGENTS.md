@@ -45,6 +45,7 @@ Regras:
 - Transação (`@Transactional`) fica no service.
 - Service lança exceção do `exception/` da funcionalidade; quem trata é o `GlobalExceptionHandler`. Nada de try/catch no controller.
 - Templates em `src/main/resources/templates/`, CSS/JS/imagens em `src/main/resources/static/`.
+- Mesa compartilhada: o que é igual em todo modo de jogo (com a máquina e com a galera) fica em `templates/mesa/mesa.html` (fragmentos), `static/css/mesa/` e `static/js/mesa/`. A tela do modo só monta a página com `th:replace` e guarda o que é só dela. O modo com a máquina serve para achar os bugs antes do multiplayer: mecânica nova nasce na mesa, não na tela do modo.
 
 ## Regras do jogo
 
@@ -52,7 +53,7 @@ Regras:
 - `static/img/` está no `.gitignore`: o texto da habilidade vai no Javadoc da classe da regra.
 - Regra que varia por tipo (raça, depois classe) usa Strategy: interface com a regra padrão nos métodos `default`, um `@Component` por tipo sobrescrevendo só o que muda, e um service que escolhe. A aplicação não sobe se faltar regra para algum tipo.
 - Números das regras básicas (limite da mão, mínimo para fugir...) ficam em `jogo/service/RegrasBasicas`, nunca soltos no código.
-- Sorte sempre pelo `Dado` injetado, nunca `Random` direto (o teste fixa o valor).
+- Sorte sempre pelo `Dado` ou pelo `Embaralhador` injetados (`jogo/service/`), nunca `Random` direto (o teste fixa o valor; a propriedade `jogo.semente` fixa o embaralhamento).
 
 ## Comandos
 
@@ -71,7 +72,8 @@ Dois tipos, os dois automatizados e rodando no `./mvnw test`:
 
 Teste de tela:
 - Imagens base em `src/test/resources/telas/<tela>.png`; o diff gerado em caso de falha vai para `target/telas/`.
-- Tamanho de janela fixo e dados fixos (seed de teste), para o print não variar.
+- Tamanho de janela fixo e dados fixos (`jogo.semente` no `@SpringBootTest` da tela), para o print não variar.
+- O Chrome roda com `--force-prefers-reduced-motion`: tela com animação tem que respeitar `prefers-reduced-motion` e já mostrar o estado final.
 - Tolerância pequena de pixels diferentes, por causa do antialiasing.
 - Imagem base só é atualizada de propósito: `./mvnw test -Dtelas.atualizar=true`.
 
