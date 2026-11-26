@@ -11,6 +11,9 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
+
+import static ivens.versao.casa.munchkin.jogo.service.RegrasBasicas.NIVEL_INICIAL;
 
 @Entity
 @Getter
@@ -29,8 +32,14 @@ public class Munchkin {
     @Column(nullable = false)
     private Raca raca;
 
+    /** Começa no nível 0 (regra da casa); o default no banco é para as linhas que já existiam. */
+    @ColumnDefault("0")
+    @Column(nullable = false)
+    private int nivel;
+
     public Munchkin(String nome) {
         this.nome = nome;
         this.raca = Raca.HUMANO;
+        this.nivel = NIVEL_INICIAL;
     }
 }
