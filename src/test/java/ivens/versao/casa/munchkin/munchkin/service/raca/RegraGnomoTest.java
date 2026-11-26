@@ -1,11 +1,11 @@
 package ivens.versao.casa.munchkin.munchkin.service.raca;
 
 import ivens.versao.casa.munchkin.munchkin.model.Raca;
+import ivens.versao.casa.munchkin.munchkin.service.raca.regrasRacas.RegraGnomo;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-import static ivens.versao.casa.munchkin.munchkin.service.raca.RegraDeRaca.ILIMITADO;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RegraGnomoTest {

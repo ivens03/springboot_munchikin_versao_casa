@@ -4,6 +4,15 @@ import ivens.versao.casa.munchkin.munchkin.exception.MunchkinNaoEncontradoExcept
 import ivens.versao.casa.munchkin.munchkin.model.Munchkin;
 import ivens.versao.casa.munchkin.munchkin.model.Raca;
 import ivens.versao.casa.munchkin.munchkin.service.MunchkinService;
+import ivens.versao.casa.munchkin.munchkin.service.raca.regrasRacas.RacaService;
+import ivens.versao.casa.munchkin.munchkin.service.raca.regrasRacas.RegraAnao;
+import ivens.versao.casa.munchkin.munchkin.service.raca.regrasRacas.RegraCentauro;
+import ivens.versao.casa.munchkin.munchkin.service.raca.regrasRacas.RegraElfo;
+import ivens.versao.casa.munchkin.munchkin.service.raca.regrasRacas.RegraGnomo;
+import ivens.versao.casa.munchkin.munchkin.service.raca.regrasRacas.RegraHalfling;
+import ivens.versao.casa.munchkin.munchkin.service.raca.regrasRacas.RegraHomemLagarto;
+import ivens.versao.casa.munchkin.munchkin.service.raca.regrasRacas.RegraHumano;
+import ivens.versao.casa.munchkin.munchkin.service.raca.regrasRacas.RegraOrc;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

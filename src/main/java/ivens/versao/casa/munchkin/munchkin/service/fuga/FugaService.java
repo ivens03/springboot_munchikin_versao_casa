@@ -3,7 +3,7 @@ package ivens.versao.casa.munchkin.munchkin.service.fuga;
 import ivens.versao.casa.munchkin.munchkin.model.Munchkin;
 import ivens.versao.casa.munchkin.jogo.service.Dado;
 import ivens.versao.casa.munchkin.munchkin.service.MunchkinService;
-import ivens.versao.casa.munchkin.munchkin.service.raca.RacaService;
+import ivens.versao.casa.munchkin.munchkin.service.raca.regrasRacas.RacaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

@@ -1,6 +1,7 @@
-package ivens.versao.casa.munchkin.munchkin.service.raca;
+package ivens.versao.casa.munchkin.munchkin.service.raca.regrasRacas;
 
 import ivens.versao.casa.munchkin.munchkin.model.Raca;
+import ivens.versao.casa.munchkin.munchkin.service.raca.RegraDeRaca;
 import org.springframework.stereotype.Component;
 
 /** Carrega qualquer número de Itens Grandes. Fica com 6 cartas na mão no final do turno. */

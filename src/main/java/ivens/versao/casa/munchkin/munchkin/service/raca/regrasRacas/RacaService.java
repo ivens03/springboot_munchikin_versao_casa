@@ -1,8 +1,9 @@
-package ivens.versao.casa.munchkin.munchkin.service.raca;
+package ivens.versao.casa.munchkin.munchkin.service.raca.regrasRacas;
 
 import ivens.versao.casa.munchkin.munchkin.model.Munchkin;
 import ivens.versao.casa.munchkin.munchkin.model.Raca;
 import ivens.versao.casa.munchkin.munchkin.service.MunchkinService;
+import ivens.versao.casa.munchkin.munchkin.service.raca.RegraDeRaca;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

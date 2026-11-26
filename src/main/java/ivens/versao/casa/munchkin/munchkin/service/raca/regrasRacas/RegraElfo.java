@@ -1,6 +1,7 @@
-package ivens.versao.casa.munchkin.munchkin.service.raca;
+package ivens.versao.casa.munchkin.munchkin.service.raca.regrasRacas;
 
 import ivens.versao.casa.munchkin.munchkin.model.Raca;
+import ivens.versao.casa.munchkin.munchkin.service.raca.RegraDeRaca;
 import org.springframework.stereotype.Component;
 
 /** +1 para Fugir. Ganha 1 Nível para cada monstro que ajudar alguém a matar. */
