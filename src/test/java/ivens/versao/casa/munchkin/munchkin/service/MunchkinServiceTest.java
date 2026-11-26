@@ -10,11 +10,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,6 +36,34 @@ class MunchkinServiceTest {
 
         assertThat(munchkin.getNome()).isEqualTo("Ivens");
         assertThat(munchkin.getRaca()).isEqualTo(Raca.HUMANO);
+        assertThat(munchkin.getNivel()).isZero();
+    }
+
+    @Test
+    void jogadorNovoComecaHumanoENaoESalvo() {
+        Munchkin jogador = munchkinService.novoJogador();
+
+        assertThat(jogador.getNome()).isEqualTo(MunchkinService.NOME_DO_JOGADOR);
+        assertThat(jogador.getRaca()).isEqualTo(Raca.HUMANO);
+        assertThat(jogador.getNivel()).isZero();
+        verifyNoInteractions(munchkinRepository);
+    }
+
+    @Test
+    void semItemEquipadoAForcaDeCombateEOProprioNivel() {
+        Munchkin jogador = munchkinService.novoJogador();
+
+        assertThat(munchkinService.forcaDeCombate(jogador)).isEqualTo(jogador.getNivel()).isZero();
+    }
+
+    @Test
+    void botsSaoNumeradosComecamHumanosENaoSaoSalvos() {
+        List<Munchkin> bots = munchkinService.novosBots(3);
+
+        assertThat(bots).extracting(Munchkin::getNome).containsExactly("Bot 1", "Bot 2", "Bot 3");
+        assertThat(bots).extracting(Munchkin::getRaca).containsOnly(Raca.HUMANO);
+        assertThat(bots).extracting(Munchkin::getNivel).containsOnly(0);
+        verifyNoInteractions(munchkinRepository);
     }
 
     @Test

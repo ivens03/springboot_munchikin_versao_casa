@@ -1,0 +1,559 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    overflow: hidden;
+    background: #120c07;
+}
+
+/*
+ * Mesa compartilhada por todos os modos de jogo (com a máquina e com a galera).
+ * O jogador fica embaixo; os oponentes em arco em volta da mesa; as pilhas no lado esquerdo.
+ */
+.mesa {
+    /* altura das mãos; a largura sai da proporção da imagem (~0,95 da altura) */
+    --altura-mao: min(62vh, 50vw);
+
+    /*
+     * Leque entre os polegares (--total vem do HTML, no leque: quantidade de cartas na mão).
+     * Borda de dentro do polegar esquerdo: 47,7% da mão esquerda (largura 0,96 × altura) = 0,458 × altura-mao
+     * da borda esquerda da tela. Do direito: 58,2% da mão direita (largura 0,933 × altura) = 0,39 × altura-mao
+     * da borda direita. O leque aberto termina antes dos polegares: desconta a largura de uma carta e quanto o
+     * canto de cima das cartas das pontas se inclina para fora com o giro (sen 18° ≈ 0,31 da altura, de cada lado).
+     */
+    --altura-carta: 29vh;
+    --largura-carta: calc(var(--altura-carta) * 657 / 1019);
+    --espaco-entre-polegares: calc(100vw - 0.848 * var(--altura-mao));
+
+    /* mão recolhida para baixo, perto do corpo, até o mouse passar em cima; aí mãos e cartas sobem juntas */
+    --descida-da-mao: 24vh;
+
+    /* centro da mesa: as pilhas ficam na altura dele e os oponentes em volta */
+    --centro-da-mesa: 42vh;
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+}
+
+.mesa:has(.mao:hover) {
+    --descida-da-mao: 8vh;
+}
+
+/*
+ * ---------- Pilhas no lado esquerdo da mesa ----------
+ * Dungeon em pé, ocupando as duas linhas; ao lado, Masmorra em cima e Tesouro embaixo (deitadas).
+ * O recuo da esquerda deixa livre a borda onde sentam os oponentes das pontas (com 10 bots).
+ */
+.pilhas {
+    --altura-pilha: 22vh;
+    position: absolute;
+    top: var(--centro-da-mesa);
+    left: 9vw;
+    transform: translateY(-50%);
+    display: grid;
+    grid-template-columns: auto auto;
+    align-items: center;
+    gap: 2vh 3vh;
+}
+
+.pilha[data-pilha="dungeon"] {
+    grid-row: 1 / 3;
+}
+
+.pilha {
+    display: block;
+    height: var(--altura-pilha);
+    width: auto;
+}
+
+/* imagem da pilha deitada: 761 px de altura contra 1123 da em pé; assim as cartas ficam do mesmo tamanho */
+.pilha--deitada {
+    height: calc(var(--altura-pilha) * 761 / 1123);
+}
+
+/*
+ * ---------- Aviso da vitória, no centro da mesa (as pilhas ficam na esquerda) ----------
+ * Escondido até o fim da compra inicial; o compra_inicial.js põe .vitoria--anunciada, que aparece,
+ * fica uns segundos e some. Sem animação (prefers-reduced-motion) o estado final é escondido.
+ */
+.vitoria {
+    position: absolute;
+    top: var(--centro-da-mesa);
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 0.4rem 1.1rem;
+    white-space: nowrap;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #d9a63a;
+    background: rgba(29, 18, 10, 0.85);
+    border: 1px solid rgba(217, 166, 58, 0.7);
+    border-radius: 999px;
+    visibility: hidden;
+    opacity: 0;
+}
+
+.vitoria--anunciada {
+    visibility: visible;
+    animation: anunciar-vitoria 3.5s ease forwards;
+}
+
+@keyframes anunciar-vitoria {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.85);
+    }
+    12% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    80% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+/*
+ * ---------- Informações do jogador, embaixo das próprias cartas ----------
+ * Escondidas até o mouse ir para o leque; aí sobem junto com a mão e ocupam o espaço que ela deixa
+ * embaixo, entre os polegares. Ficam na frente das cartas e sem pegar o mouse (a mão não desce).
+ */
+.jogador {
+    /* escondidas, ficam abaixo da borda da tela; no hover sobem até logo embaixo das cartas levantadas */
+    --descida-das-informacoes: calc(14vh + 120%);
+    position: absolute;
+    bottom: 14vh;
+    left: 50%;
+    z-index: 3;
+    display: flex;
+    gap: 1.2rem;
+    padding: 0.35rem 1.1rem;
+    white-space: nowrap;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 0.95rem;
+    color: #f6e3b4;
+    background: rgba(29, 18, 10, 0.85);
+    border: 1px solid rgba(217, 166, 58, 0.7);
+    border-radius: 999px;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transform: translate(-50%, var(--descida-das-informacoes));
+    transition: transform 0.3s ease, opacity 0.3s ease, visibility 0.3s;
+}
+
+.mesa:has(.mao:hover) .jogador {
+    --descida-das-informacoes: 0%;
+    opacity: 1;
+    visibility: visible;
+}
+
+.jogador__dado {
+    display: flex;
+    gap: 0.35rem;
+}
+
+.jogador__dado dd {
+    font-weight: bold;
+    color: #d9a63a;
+}
+
+/*
+ * ---------- Placar dos inimigos, sempre à vista no lado direito (espelha as pilhas) ----------
+ * Preso pela borda de baixo, logo acima de onde a mão direita sobe no hover, e cresce para cima:
+ * com poucos bots (assentos do topo maiores) fica baixo; com 10 (assentos menores) chega perto do topo.
+ */
+.placar {
+    position: absolute;
+    bottom: 54vh;
+    right: 9vw;
+    min-width: 11rem;
+    padding: 0.5rem 0.9rem;
+    font-family: Georgia, "Times New Roman", serif;
+    color: #f6e3b4;
+    background: rgba(29, 18, 10, 0.85);
+    border: 1px solid rgba(217, 166, 58, 0.7);
+    border-radius: 0.8rem;
+}
+
+.placar__titulo {
+    margin-bottom: 0.3rem;
+    font-size: 0.85rem;
+    font-weight: normal;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #d9a63a;
+}
+
+.placar__lista {
+    list-style: none;
+}
+
+.placar__linha {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.2rem;
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+.placar__nivel {
+    color: #d9a63a;
+}
+
+/*
+ * ---------- Mãos do jogador ----------
+ * As mãos ficam atrás das cartas (palma para a frente, dedos atrás do leque).
+ */
+.segurador {
+    position: absolute;
+    bottom: 0;
+    height: var(--altura-mao);
+    z-index: 1;
+    transform: translateY(var(--descida-da-mao));
+    transition: transform 0.3s ease;
+}
+
+.segurador--esquerdo {
+    left: 0;
+    aspect-ratio: 1065 / 1109;
+}
+
+.segurador--direito {
+    right: 0;
+    aspect-ratio: 1036 / 1110;
+}
+
+.segurador__mao {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/*
+ * ---------- Leque com todas as cartas do jogador ----------
+ * Vai de polegar a polegar e desce/sobe junto com as mãos. A caixa da mão é a área do mouse.
+ * A carta embaixo do mouse salta (sobe, cresce e fica reta) e as vizinhas se afastam.
+ */
+.mao {
+    /* fica aqui (e não na .mesa) porque o --total vem no próprio leque, pelo fragmento mesa :: maoDoJogador */
+    --espaco-entre-cartas: calc((var(--espaco-entre-polegares) - var(--largura-carta)
+                                 - 0.62 * var(--altura-carta) - 1vh) / max(var(--total) - 1, 1));
+    --largura-do-leque: calc(var(--espaco-entre-cartas) * (var(--total) - 1) + var(--largura-carta));
+    position: absolute;
+    /* meio entre os dois polegares (o esquerdo fica um pouco mais para dentro) */
+    left: calc(50% + 0.034 * var(--altura-mao) - var(--largura-do-leque) / 2);
+    bottom: 33vh;
+    width: var(--largura-do-leque);
+    height: var(--altura-carta);
+    list-style: none;
+    z-index: 2;
+    transform: translateY(var(--descida-da-mao));
+    transition: transform 0.3s ease;
+}
+
+/* a área do mouse vai do leque até embaixo da tela: com a mão subindo, o mouse não sai dela */
+.mao::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 100vh;
+}
+
+/* carta num leque (do jogador ou do oponente): posição e giro saem do --i, do --total e das medidas do leque */
+.carta {
+    --deslocamento: calc(var(--i) - (var(--total) - 1) / 2);
+    --empurrao: 0;
+    position: absolute;
+    bottom: 0;
+    left: calc(50% - var(--largura-carta) / 2);
+    width: var(--largura-carta);
+    height: var(--altura-carta);
+    transform-origin: 50% 100%;
+    transform:
+        translateX(calc(var(--deslocamento) * var(--espaco-entre-cartas) + var(--empurrao) * 3vh))
+        translateY(calc(var(--deslocamento) * var(--deslocamento) * var(--altura-carta) / 116))
+        rotate(calc(var(--deslocamento) * 4deg));
+    perspective: 1200px;
+    transition: transform 0.25s ease;
+}
+
+.mao .carta {
+    cursor: pointer;
+}
+
+/* vizinhas da carta selecionada abrem espaço */
+.mao .carta:has(+ .carta:hover) {
+    --empurrao: -1;
+}
+
+.mao .carta:hover + .carta {
+    --empurrao: 1;
+}
+
+/* carta selecionada: salta para cima, cresce e fica reta, na frente das outras */
+.mao .carta:hover {
+    z-index: 10;
+    transform:
+        translateX(calc(var(--deslocamento) * var(--espaco-entre-cartas)))
+        translateY(-7vh)
+        scale(1.45);
+}
+
+/* área invisível embaixo da carta que saltou: o mouse continua "em cima" dela no lugar de onde ela subiu */
+.mao .carta:hover::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    height: calc(7vh / 1.45 + 1vh);
+}
+
+/*
+ * ---------- Oponentes em volta da mesa ----------
+ * Cada um num assento: mãos de costas segurando um leque em miniatura, com as cartas de costas.
+ * Os assentos ficam na borda da mesa, como cadeiras de uma mesa de cantos arredondados: um caminho que sobe
+ * pela lateral esquerda, faz a curva do canto, atravessa o topo, faz a outra curva e desce pela lateral
+ * direita (até a altura das pilhas, acima da mão do jogador).
+ * Até 4 bots só a reta do topo é usada; daí em diante o trecho usado vai entrando pelos cantos e laterais,
+ * até o caminho inteiro com 10. Cada bot ganha o mesmo pedaço do trecho e o assento cresce até preencher
+ * esse pedaço, com um teto para não chegar nas pilhas. O assento gira com os pulsos para a borda da tela
+ * e as cartas para o centro; no canto ele fica na diagonal.
+ */
+.oponentes {
+    position: absolute;
+    inset: 0;
+    list-style: none;
+    pointer-events: none;
+}
+
+.oponente {
+    --raio-do-canto: 16vh;
+    /* até onde as laterais descem, medido do topo da tela */
+    --lateral: 52vh;
+
+    /* 1º: tamanho do assento, pelo comprimento do caminho rente à borda */
+    --reta-do-topo: calc(100vw - 2 * var(--raio-do-canto));
+    --reta-da-lateral: calc(var(--lateral) - var(--raio-do-canto));
+    --arco: calc(pi / 2 * var(--raio-do-canto));
+    --caminho: calc(var(--reta-do-topo) + 2 * (var(--arco) + var(--reta-da-lateral)));
+    /* trecho usado: só a reta do topo até 4 bots; cada bot a mais entra 1/6 do resto (cantos e laterais) */
+    --usado: min(var(--caminho),
+                 var(--reta-do-topo) + max(0, var(--bots) - 4) * (var(--caminho) - var(--reta-do-topo)) / 6);
+    /* o assento ocupa 92% do pedaço de cada bot; largura = 2,4 × altura */
+    --altura-assento: min(30vh, var(--usado) / var(--bots) * 0.92 / 2.4);
+    --largura-assento: calc(2.4 * var(--altura-assento));
+
+    /* 2º: o caminho de verdade passa pelo centro dos assentos, a um quarto deles da borda (os pulsos ficam fora) */
+    --recuo: calc(0.25 * var(--altura-assento));
+    --reta-do-topo-real: calc(var(--reta-do-topo) - 2 * var(--recuo));
+    --reta-da-lateral-real: calc(var(--reta-da-lateral) - var(--recuo));
+    --caminho-real: calc(var(--reta-do-topo-real) + 2 * (var(--arco) + var(--reta-da-lateral-real)));
+    --usado-real: min(var(--caminho-real), var(--reta-do-topo-real)
+                      + max(0, var(--bots) - 4) * (var(--caminho-real) - var(--reta-do-topo-real)) / 6);
+    /* posição do bot no caminho (o trecho usado fica centralizado no topo) */
+    --s: calc((var(--caminho-real) - var(--usado-real)) / 2 + (var(--i) + 0.5) * var(--usado-real) / var(--bots));
+
+    /* trechos: reta esquerda [0, a], canto esquerdo [a, b], topo [b, c], canto direito [c, d], reta direita */
+    --a: var(--reta-da-lateral-real);
+    --b: calc(var(--a) + var(--arco));
+    --c: calc(var(--b) + var(--reta-do-topo-real));
+    --d: calc(var(--c) + var(--arco));
+    /* quanto já andou em cada curva (radianos, de 0 a π/2) */
+    --curva-esquerda: clamp(0, (var(--s) - var(--a)) / var(--raio-do-canto), pi / 2);
+    --curva-direita: clamp(0, (var(--s) - var(--c)) / var(--raio-do-canto), pi / 2);
+    --centro-x: calc(var(--recuo)
+                     + var(--raio-do-canto) * (1 - cos(var(--curva-esquerda)))
+                     + clamp(0px, var(--s) - var(--b), var(--reta-do-topo-real))
+                     + var(--raio-do-canto) * sin(var(--curva-direita)));
+    --centro-y: calc(var(--recuo)
+                     + max(0px, var(--a) - var(--s))
+                     + var(--raio-do-canto) * (1 - sin(var(--curva-esquerda)))
+                     + var(--raio-do-canto) * (1 - cos(var(--curva-direita)))
+                     + max(0px, var(--s) - var(--d)));
+    /* direção do assento vista do centro da mesa: 180° na lateral esquerda, 270° no topo, 360° na direita */
+    --angulo: calc(180deg + var(--curva-esquerda) * 1rad + var(--curva-direita) * 1rad);
+    outline: none;
+}
+
+.oponente__assento {
+    position: absolute;
+    left: calc(var(--centro-x) - var(--largura-assento) / 2);
+    top: calc(var(--centro-y) - var(--altura-assento) / 2);
+    width: var(--largura-assento);
+    height: var(--altura-assento);
+    transform: rotate(calc(var(--angulo) - 90deg));
+    pointer-events: auto;
+}
+
+/*
+ * Mãos de costas (dorso), por cima do leque: quem está do outro lado da mesa vê os dedos segurando
+ * os versos das cartas. Medidas das imagens moes_costas_*: a esquerda tem largura 0,96 × altura e os dedos
+ * de 50% a 98% da largura; a direita, 0,933 × altura e os dedos de 2% a 50%. Nas duas, os dedos ocupam
+ * a metade de cima da imagem.
+ */
+.oponente__mao {
+    position: absolute;
+    bottom: 0;
+    z-index: 2;
+    height: 100%;
+    width: auto;
+}
+
+.oponente__mao--esquerda {
+    left: 0;
+}
+
+.oponente__mao--direita {
+    right: 0;
+}
+
+/*
+ * Leque atrás dos dedos: cada ponta fica um terço para dentro da faixa dos dedos
+ * (esquerda: 65% de 0,96 = 0,62 × altura; direita: 2,4 − 0,933 + 35% de 0,933 = 1,794 × altura)
+ * e a base das cartas na altura dos dedos, que cobrem a metade de baixo delas.
+ */
+.oponente__cartas {
+    --altura-carta: calc(0.6 * var(--altura-assento));
+    --largura-carta: calc(var(--altura-carta) * 657 / 1019);
+    --largura-do-leque: calc(1.174 * var(--altura-assento));
+    --espaco-entre-cartas: calc((var(--largura-do-leque) - var(--largura-carta)) / max(var(--total) - 1, 1));
+    position: absolute;
+    z-index: 1;
+    left: calc(0.62 * var(--altura-assento));
+    bottom: calc(0.55 * var(--altura-assento));
+    width: var(--largura-do-leque);
+    height: var(--altura-carta);
+    list-style: none;
+}
+
+/*
+ * Quantas cartas o oponente tem: aparece no meio do leque dele, sem girar junto com o assento,
+ * e nunca sai da tela (clamp na borda).
+ */
+.oponente__contagem {
+    --para-o-centro: calc(0.5 * var(--altura-assento));
+    position: absolute;
+    left: clamp(5.5rem, var(--centro-x) - cos(var(--angulo)) * var(--para-o-centro), 100vw - 5.5rem);
+    top: clamp(3rem, var(--centro-y) - sin(var(--angulo)) * var(--para-o-centro), 100vh - 3rem);
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.5rem 0.9rem;
+    white-space: nowrap;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 0.95rem;
+    color: #f6e3b4;
+    background: rgba(29, 18, 10, 0.94);
+    border: 2px solid #d9a63a;
+    border-radius: 8px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.7);
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.15s ease, visibility 0.15s;
+}
+
+.oponente:has(.oponente__assento:hover) .oponente__contagem,
+.oponente:focus-visible .oponente__contagem {
+    opacity: 1;
+    visibility: visible;
+}
+
+.oponente:has(.oponente__assento:hover) .oponente__assento,
+.oponente:focus-visible .oponente__assento {
+    filter: brightness(1.15) drop-shadow(0 0 6px rgba(217, 166, 58, 0.7));
+}
+
+.oponente__nome {
+    font-size: 1.05rem;
+}
+
+.oponente__nivel {
+    font-weight: bold;
+    color: #d9a63a;
+}
+
+.oponente__pilha {
+    font-size: 0.85rem;
+}
+
+.oponente__pilha--masmorra {
+    color: #f0a77e;
+}
+
+.oponente__pilha--tesouro {
+    color: #f2d36b;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .segurador,
+    .mao,
+    .carta,
+    .jogador,
+    .oponente__contagem {
+        transition: none;
+    }
+}
+
+/* enquanto compra, a carta só aparece quando sai da pilha */
+.mesa--comprando .carta:not(.carta--comprada) {
+    visibility: hidden;
+}
+
+/* carta voando da pilha até a mão (criada pelo compra_inicial.js) */
+.voo {
+    position: fixed;
+    z-index: 30;
+    perspective: 1200px;
+    pointer-events: none;
+}
+
+.carta__interior {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+}
+
+.carta__frente,
+.carta__verso,
+.carta__costas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 4% / 2.6%;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.55);
+}
+
+.carta__frente,
+.carta__verso {
+    backface-visibility: hidden;
+}
+
+.carta__verso {
+    transform: rotateY(180deg);
+}
+
+/* carta do oponente: só o verso, já virado para quem olha */
+.carta__costas {
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.55);
+}

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<!--
+  Peças da mesa, iguais em todo modo de jogo (com a máquina e com a galera).
+  A página inclui com th:replace, dentro de um <main class="mesa">, e carrega:
+    /css/mesa/mesa.css        → visual e mecânica (mão sobe no hover, carta salta, leque)
+    /js/mesa/compra_inicial.js → animação das cartas saindo das pilhas e o aviso da vitória no fim
+-->
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<section th:fragment="pilhas" class="pilhas" aria-label="Pilhas de cartas">
+    <img class="pilha" data-pilha="dungeon" th:src="@{/img/cartas/traseira/pilha_dungeon.png}"
+         alt="Pilha de Dungeon">
+    <img class="pilha pilha--deitada" data-pilha="masmorra" th:src="@{/img/cartas/traseira/pilha_masmorra.png}"
+         alt="Pilha de Masmorra">
+    <img class="pilha pilha--deitada" data-pilha="tesouro" th:src="@{/img/cartas/traseira/pilha_tesouro.png}"
+         alt="Pilha de Tesouro">
+</section>
+
+<!--
+  Aviso do nível que vence, no centro da mesa. Fica escondido: o compra_inicial.js mostra quando
+  todos terminam de receber as cartas e tira da tela depois de uns segundos.
+-->
+<p th:fragment="vitoria(vitoria)" class="vitoria" role="status"
+   th:text="|Vitória no nível ${vitoria.nivel}|">Vitória no nível 10</p>
+
+<!-- informações do jogador, embaixo das próprias cartas: sobem junto com a mão (mouse no leque) -->
+<dl th:fragment="infoDoJogador(jogador)" class="jogador">
+    <div class="jogador__dado">
+        <dt>Nome:</dt>
+        <dd th:text="${jogador.nome}">Jogador</dd>
+    </div>
+    <div class="jogador__dado">
+        <dt>Raça:</dt>
+        <dd th:text="${jogador.raca}">Humano</dd>
+    </div>
+    <div class="jogador__dado">
+        <dt>Nível atual:</dt>
+        <dd th:text="${jogador.nivel}">0</dd>
+    </div>
+    <div class="jogador__dado">
+        <dt>Nível de força:</dt>
+        <dd th:text="${jogador.forcaDeCombate}">0</dd>
+    </div>
+</dl>
+
+<!-- placar dos inimigos: nome e nível de cada um, na ordem em que estão sentados -->
+<section th:fragment="placar(oponentes)" class="placar" aria-labelledby="titulo-do-placar">
+    <h2 id="titulo-do-placar" class="placar__titulo">Inimigos</h2>
+    <ol class="placar__lista">
+        <li class="placar__linha" th:each="oponente : ${oponentes}">
+            <span th:text="${oponente.munchkin.nome}">Bot 1</span>
+            <strong class="placar__nivel" th:text="|Nível ${oponente.munchkin.nivel}|">Nível 0</strong>
+        </li>
+    </ol>
+</section>
+
+<!-- mãos do jogador segurando o leque com as cartas dele -->
+<th:block th:fragment="maoDoJogador(jogador, cartas)">
+    <div class="segurador segurador--esquerdo">
+        <img class="segurador__mao" th:src="@{${jogador.imagemDaMaoEsquerda}}"
+             th:alt="|Mão esquerda do ${jogador.nome} (${jogador.raca})|">
+    </div>
+    <div class="segurador segurador--direito">
+        <img class="segurador__mao" th:src="@{${jogador.imagemDaMaoDireita}}"
+             th:alt="|Mão direita do ${jogador.nome} (${jogador.raca})|">
+    </div>
+
+    <ol class="mao" aria-label="Cartas na mão" th:style="|--total: ${#lists.size(cartas)}|">
+        <li class="carta" th:each="carta, posicao : ${cartas}" th:attr="data-pilha=${carta.tipo}"
+            th:style="|--i: ${posicao.index}|">
+            <div class="carta__interior">
+                <img class="carta__frente" th:src="@{${carta.imagem}}" th:alt="${carta.nome}">
+                <img class="carta__verso" th:src="@{${carta.verso}}" alt="">
+            </div>
+        </li>
+    </ol>
+</th:block>
+
+<!--
+  Oponentes sentados em volta da mesa, virados para o centro, com as cartas de costas.
+  As mãos são as de costas (dorso da mão), com os dedos por cima dos versos.
+  Passando o mouse (ou o foco) na mão, aparece o nível dele e quantas cartas ele tem, sem mostrar quais.
+-->
+<ol th:fragment="oponentes(oponentes)" class="oponentes" aria-label="Oponentes"
+    th:style="|--bots: ${#lists.size(oponentes)}|">
+    <li class="oponente" th:each="oponente, posicao : ${oponentes}" th:style="|--i: ${posicao.index}|"
+        tabindex="0"
+        th:aria-label="|${oponente.munchkin.nome}, nível ${oponente.munchkin.nivel}: ${oponente.mao.total} cartas na mão, ${oponente.mao.cartasDeMasmorra} de Masmorra e ${oponente.mao.cartasDeTesouro} de Tesouro|">
+        <div class="oponente__assento">
+            <img class="oponente__mao oponente__mao--esquerda"
+                 th:src="@{${oponente.munchkin.imagemDasCostasDaMaoEsquerda}}" alt="">
+            <img class="oponente__mao oponente__mao--direita"
+                 th:src="@{${oponente.munchkin.imagemDasCostasDaMaoDireita}}" alt="">
+            <ol class="oponente__cartas" th:style="|--total: ${oponente.mao.total}|">
+                <li class="carta carta--fechada" th:each="carta, posicaoDaCarta : ${oponente.mao.cartas}"
+                    th:attr="data-pilha=${carta.tipo}" th:style="|--i: ${posicaoDaCarta.index}|">
+                    <div class="carta__interior">
+                        <img class="carta__costas" th:src="@{${carta.verso}}" alt="">
+                    </div>
+                </li>
+            </ol>
+        </div>
+        <p class="oponente__contagem" aria-hidden="true">
+            <strong class="oponente__nome" th:text="${oponente.munchkin.nome}">Bot 1</strong>
+            <span class="oponente__nivel" th:text="|Nível ${oponente.munchkin.nivel}|">Nível 0</span>
+            <span th:text="|${oponente.mao.total} cartas na mão|">10 cartas na mão</span>
+            <span class="oponente__pilha oponente__pilha--masmorra"
+                  th:text="|${oponente.mao.cartasDeMasmorra} de Masmorra|">5 de Masmorra</span>
+            <span class="oponente__pilha oponente__pilha--tesouro"
+                  th:text="|${oponente.mao.cartasDeTesouro} de Tesouro|">5 de Tesouro</span>
+        </p>
+    </li>
+</ol>
+
+</body>
+</html>

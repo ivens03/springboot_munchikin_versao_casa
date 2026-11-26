@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Munchkin da Casa — Jogar com a máquina</title>
+    <link rel="stylesheet" th:href="@{/css/mesa/mesa.css}">
+</head>
+<body>
+<main class="mesa">
+    <section th:replace="~{mesa/mesa :: pilhas}"></section>
+    <p th:replace="~{mesa/mesa :: vitoria(${vitoria})}"></p>
+    <ol th:replace="~{mesa/mesa :: oponentes(${oponentes})}"></ol>
+    <section th:replace="~{mesa/mesa :: placar(${oponentes})}"></section>
+    <dl th:replace="~{mesa/mesa :: infoDoJogador(${jogador})}"></dl>
+    <th:block th:replace="~{mesa/mesa :: maoDoJogador(${jogador}, ${maoInicial})}"></th:block>
+</main>
+<script th:src="@{/js/mesa/compra_inicial.js}"></script>
+</body>
+</html>
