@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<!--
+  Janela de montagem da mesa, usada pelos dois botões da home: primeiro a vitória, depois quantos bots.
+  Cada número de bots envia o formulário (?vitoria=...&nivel=...&bots=N) para a ação do modo de jogo.
+    id     → id do popover (o botão abre com popovertarget)
+    acao   → para onde vai (ex.: /jogar-com-maquina)
+    minimo → menor quantidade de bots oferecida (com a galera pode ser 0)
+    maximo → maior quantidade de bots
+    titulo → pergunta mostrada no topo
+  As opções de vitória e os limites do nível vêm do modelo da home.
+-->
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<body>
+<form th:fragment="escolherBots(id, acao, minimo, maximo, titulo)" th:id="${id}" class="escolher-bots" popover
+      method="get" th:action="${acao}" th:style="|--colunas: ${(maximo - minimo + 2) / 2}|">
+    <fieldset class="escolher-bots__vitoria">
+        <legend class="escolher-bots__subtitulo">Vitória</legend>
+        <label class="escolher-bots__vitoria-opcao" th:each="opcao, posicao : ${opcoesDeVitoria}">
+            <input type="radio" name="vitoria" th:value="${opcao.valor}" th:checked="${posicao.first}">
+            <span th:text="${opcao.nome}">Clássica</span>
+            <span class="escolher-bots__nivel" th:if="${opcao.nivel != null}"
+                  th:text="|nível ${opcao.nivel}|">nível 10</span>
+            <input th:if="${opcao.nivel == null}" type="number" name="nivel" class="escolher-bots__nivel-campo"
+                   th:min="${minimoNivelDeVitoria}" th:max="${maximoNivelDeVitoria}"
+                   th:value="${nivelDeVitoriaSugerido}" required
+                   th:aria-label="|Nível da vitória personalizada (${minimoNivelDeVitoria} a ${maximoNivelDeVitoria})|">
+        </label>
+    </fieldset>
+
+    <h2 class="escolher-bots__titulo" th:text="${titulo}">Quantos bots na mesa?</h2>
+    <div class="escolher-bots__opcoes">
+        <button type="submit" name="bots" class="escolher-bots__opcao"
+                th:each="quantidade : ${#numbers.sequence(minimo, maximo)}"
+                th:value="${quantidade}" th:text="${quantidade}">1</button>
+    </div>
+    <button type="button" class="escolher-bots__voltar" th:popovertarget="${id}" popovertargetaction="hide">
+        Voltar
+    </button>
+</form>
+</body>
+</html>

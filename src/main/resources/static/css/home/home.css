@@ -37,8 +37,12 @@ html, body {
 
 /* Botões provisórios: no futuro trocar por imagem (background-image em cada modificador) */
 .home__botao {
+    display: inline-block;
     min-width: 15rem;
     padding: 0.9rem 1.8rem;
+    text-align: center;
+    text-decoration: none;
+    line-height: normal;
     font-family: Georgia, "Times New Roman", serif;
     font-size: 1.25rem;
     font-weight: bold;
@@ -62,4 +66,129 @@ html, body {
 
 .home__botao:active {
     transform: translateY(1px);
+}
+
+/* ---------- Escolha de quantos bots (popover do "Jogar com a máquina") ---------- */
+.escolher-bots {
+    margin: auto;
+    padding: 1.6rem 2rem;
+    text-align: center;
+    font-family: Georgia, "Times New Roman", serif;
+    color: #f6e3b4;
+    background: linear-gradient(#3a2414, #1d120a);
+    border: 3px solid #d9a63a;
+    border-radius: 14px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8);
+}
+
+.escolher-bots::backdrop {
+    background: rgba(0, 0, 0, 0.6);
+}
+
+/* escolha da vitória: uma opção por linha; na personalizada o nível é digitado */
+.escolher-bots__vitoria {
+    margin: 0 auto 1.4rem;
+    padding: 0;
+    border: none;
+    display: grid;
+    gap: 0.45rem;
+    justify-items: start;
+    width: max-content;
+}
+
+.escolher-bots__subtitulo {
+    margin: 0 auto 0.6rem;
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-shadow: 0 2px 2px rgba(0, 0, 0, 0.8);
+}
+
+.escolher-bots__vitoria-opcao {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 2.2rem;
+    font-size: 1.15rem;
+    cursor: pointer;
+}
+
+.escolher-bots__vitoria-opcao input[type="radio"] {
+    width: 1.15rem;
+    height: 1.15rem;
+    accent-color: #d9a63a;
+    cursor: pointer;
+}
+
+.escolher-bots__nivel {
+    color: #d9a63a;
+    font-size: 1rem;
+}
+
+.escolher-bots__nivel::before {
+    content: "— ";
+}
+
+.escolher-bots__nivel-campo {
+    width: 4.6rem;
+    padding: 0.2rem 0.4rem;
+    font: inherit;
+    font-size: 1rem;
+    color: #f6e3b4;
+    background: #1d120a;
+    border: 1px solid rgba(217, 166, 58, 0.6);
+    border-radius: 6px;
+}
+
+/* o campo do nível fica apagado até a personalizada ser escolhida (clicar nele já a escolhe) */
+.escolher-bots__vitoria-opcao:not(:has(input[type="radio"]:checked)) .escolher-bots__nivel-campo {
+    opacity: 0.45;
+}
+
+.escolher-bots__titulo {
+    margin-bottom: 1.2rem;
+    font-size: 1.5rem;
+    text-shadow: 0 2px 2px rgba(0, 0, 0, 0.8);
+}
+
+.escolher-bots__opcoes {
+    display: grid;
+    /* --colunas vem do fragmento: metade das opções, para ficar em duas linhas */
+    grid-template-columns: repeat(var(--colunas, 5), 3.4rem);
+    gap: 0.7rem;
+    justify-content: center;
+}
+
+.escolher-bots__opcao,
+.escolher-bots__voltar {
+    font: inherit;
+    font-weight: bold;
+    color: #f6e3b4;
+    cursor: pointer;
+    transition: transform 0.15s, filter 0.15s;
+}
+
+.escolher-bots__opcao {
+    height: 3.4rem;
+    font-size: 1.4rem;
+    background: linear-gradient(#8e1c12, #5a0e08);
+    border: 2px solid #d9a63a;
+    border-radius: 8px;
+}
+
+.escolher-bots__voltar {
+    margin-top: 1.2rem;
+    padding: 0.4rem 1.2rem;
+    font-size: 1rem;
+    background: none;
+    border: 1px solid rgba(217, 166, 58, 0.6);
+    border-radius: 6px;
+}
+
+.escolher-bots__opcao:hover,
+.escolher-bots__opcao:focus-visible,
+.escolher-bots__voltar:hover,
+.escolher-bots__voltar:focus-visible {
+    filter: brightness(1.2);
+    transform: translateY(-2px);
+    outline: none;
 }

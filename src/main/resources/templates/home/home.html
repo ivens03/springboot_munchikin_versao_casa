@@ -12,9 +12,20 @@
          alt="Munchkin — Mate os monstros, roube tesouros, apunhale seus amigos">
 
     <nav class="home__menu">
-        <button type="button" class="home__botao home__botao--galera">Jogar com a galera</button>
-        <button type="button" class="home__botao home__botao--maquina">Jogar com a máquina</button>
+        <button type="button" class="home__botao home__botao--galera" popovertarget="escolher-bots-galera">
+            Jogar com a galera
+        </button>
+        <button type="button" class="home__botao home__botao--maquina" popovertarget="escolher-bots">
+            Jogar com a máquina
+        </button>
     </nav>
+
+    <!-- escolha de quantos bots vão para a mesa; cada número leva para o modo de jogo com ?bots=N -->
+    <form th:replace="~{home/escolher_bots :: escolherBots('escolher-bots', @{/jogar-com-maquina},
+            ${minimoDeBots}, ${maximoDeBots}, 'Quantos bots na mesa?')}"></form>
+    <form th:replace="~{home/escolher_bots :: escolherBots('escolher-bots-galera', @{/jogar-com-galera},
+            ${minimoDeBotsComAGalera}, ${maximoDeBots}, 'Quantos bots jogam com a galera?')}"></form>
 </main>
+<script th:src="@{/js/home/escolher_bots.js}"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-package ivens.versao.casa.munchkin.tela.homeTela;
+package ivens.versao.casa.munchkin.tela;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -16,10 +16,10 @@ import static org.junit.jupiter.api.Assertions.fail;
  * Tira print de uma tela com o Chrome headless e compara pixel a pixel com a imagem base
  * em src/test/resources/telas/<tela>.png. Com -Dtelas.atualizar=true regrava a imagem base.
  */
-final class ComparadorDeTela {
+public final class ComparadorDeTela {
 
-    static final int LARGURA = 1280;
-    static final int ALTURA = 720;
+    public static final int LARGURA = 1280;
+    public static final int ALTURA = 720;
 
     /** Diferença máxima por canal (0-255) para o pixel ainda contar como igual. */
     private static final int TOLERANCIA_CANAL = 16;
@@ -32,7 +32,7 @@ final class ComparadorDeTela {
     private ComparadorDeTela() {
     }
 
-    static void comparar(String tela, String url) throws Exception {
+    public static void comparar(String tela, String url) throws Exception {
         Files.createDirectories(PASTA_SAIDA);
         Path atual = PASTA_SAIDA.resolve(tela + ".png");
         tirarPrint(url, atual);
@@ -92,6 +92,8 @@ final class ComparadorDeTela {
         Process chrome = new ProcessBuilder(
                 "google-chrome", "--headless", "--disable-gpu", "--no-proxy-server",
                 "--hide-scrollbars", "--force-device-scale-factor=1",
+                // sem animação: a tela já aparece no estado final (o print não depende do tempo)
+                "--force-prefers-reduced-motion",
                 "--user-data-dir=" + perfil.toAbsolutePath(),
                 "--window-size=" + LARGURA + "," + ALTURA,
                 "--screenshot=" + destino.toAbsolutePath(),
