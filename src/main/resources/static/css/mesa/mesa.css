@@ -237,9 +237,11 @@ html, body {
     transition: transform 0.3s ease, opacity 0.3s ease, visibility 0.3s;
 }
 
+/* com a mão vazia não tem leque para passar o mouse: as informações ficam sempre à mostra */
 .mesa:has(.mao:hover) .jogador,
 .mesa:has(.carta--arrastando) .jogador,
-.mesa:has(.jogador__vender:hover) .jogador {
+.mesa:has(.jogador__vender:hover) .jogador,
+.mesa:has(.mao--vazia) .jogador {
     --descida-das-informacoes: 0%;
     opacity: 1;
     visibility: visible;

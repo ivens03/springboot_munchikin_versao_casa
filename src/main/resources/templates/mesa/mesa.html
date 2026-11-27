@@ -98,6 +98,7 @@
   data-posicao é a posição da carta na mão do servidor; acaoOrdenar recebe a ordem nova (organizar_mao.js).
   usos (um por carta, na ordem da mão) diz como a carta pode ser usada: data-opcoes (liberadas agora),
   data-alvo (pede um oponente) e data-impedimento (por que não pode), lidos pelo usar_carta.js.
+  Mão vazia (mao--vazia): sem leque para passar o mouse, as informações do jogador ficam sempre à mostra.
 -->
 <th:block th:fragment="maoDoJogador(jogador, cartas, usos, acaoOrdenar)">
     <div class="segurador segurador--esquerdo">
@@ -110,6 +111,7 @@
     </div>
 
     <ol class="mao" aria-label="Cartas na mão" th:style="|--total: ${#lists.size(cartas)}|"
+        th:classappend="${#lists.isEmpty(cartas)} ? 'mao--vazia'"
         th:attr="data-ordenar=${acaoOrdenar}">
         <li class="carta" th:each="carta, posicao : ${cartas}"
             th:with="uso=${usos[posicao.index]}"

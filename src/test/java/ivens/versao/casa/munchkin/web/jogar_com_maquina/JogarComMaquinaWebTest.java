@@ -366,6 +366,28 @@ class JogarComMaquinaWebTest {
                 .andExpect(status().isNotFound());
     }
 
+    @Test
+    void maoVaziaFicaMarcadaParaAsInformacoesFicaremAMostra() throws Exception {
+        mesaDepoisDaPreparacao();
+
+        mockMvc.perform(get(urlDaMesa))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("class=\"mao mao--vazia\"")));
+    }
+
+    @Test
+    void maoComCartaNaoEVazia() throws Exception {
+        mesaDepoisDaPreparacao();
+        when(cartaDtoMapper.paraDto(maoDoJogador)).thenReturn(List.of(new CartaDto("tesouro", "Espada",
+                "/img/cartas/tesouro/1_itens/espada_tesouro.jpg", "/img/cartas/traseira/verso_tesouro.jpg")));
+        when(usoDeCartaDtoMapper.paraDto(List.of()))
+                .thenReturn(List.of(new UsoDeCartaDto(List.of(), false, "Esta carta ainda não pode ser usada no jogo.")));
+
+        mockMvc.perform(get(urlDaMesa))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("mao--vazia"))));
+    }
+
     /** Partida na rodada 1, com os mappers devolvendo o mínimo para a página renderizar. */
     private void mesaDepoisDaPreparacao() {
         when(partidaService.buscar(partida.getId())).thenReturn(partida);
