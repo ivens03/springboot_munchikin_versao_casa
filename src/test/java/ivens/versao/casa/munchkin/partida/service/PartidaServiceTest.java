@@ -2,7 +2,14 @@ package ivens.versao.casa.munchkin.partida.service;
 
 import ivens.versao.casa.munchkin.carta.model.Carta;
 import ivens.versao.casa.munchkin.carta.model.TipoDeCarta;
+import ivens.versao.casa.munchkin.carta.exception.UsoDeCartaNaoPermitidoException;
+import ivens.versao.casa.munchkin.carta.model.ImpedimentoDeUso;
+import ivens.versao.casa.munchkin.carta.model.OpcaoDeNivel;
 import ivens.versao.casa.munchkin.carta.service.BaralhoService;
+import ivens.versao.casa.munchkin.carta.service.nivel.EfeitoDeNivel;
+import ivens.versao.casa.munchkin.carta.service.nivel.SituacaoDoJogador;
+import ivens.versao.casa.munchkin.carta.service.nivel.SubaDeNivelService;
+import ivens.versao.casa.munchkin.carta.service.nivel.UsoDeCarta;
 import ivens.versao.casa.munchkin.jogo.exception.NivelDeVitoriaInvalidoException;
 import ivens.versao.casa.munchkin.jogo.model.TipoDeVitoria;
 import ivens.versao.casa.munchkin.jogo.model.Vitoria;
@@ -10,9 +17,14 @@ import ivens.versao.casa.munchkin.jogo.service.Embaralhador;
 import ivens.versao.casa.munchkin.jogo.service.VitoriaService;
 import ivens.versao.casa.munchkin.munchkin.model.Munchkin;
 import ivens.versao.casa.munchkin.munchkin.service.MunchkinService;
+import ivens.versao.casa.munchkin.partida.exception.AlvoInvalidoException;
+import ivens.versao.casa.munchkin.partida.exception.CartaForaDaMaoException;
 import ivens.versao.casa.munchkin.partida.exception.ForaDaHoraDeVenderOuroException;
 import ivens.versao.casa.munchkin.partida.exception.OrdemDaMaoInvalidaException;
 import ivens.versao.casa.munchkin.partida.exception.PartidaNaoEncontradaException;
+import ivens.versao.casa.munchkin.partida.model.EfeitoDaJogada.MaoDescartada;
+import ivens.versao.casa.munchkin.partida.model.EfeitoDaJogada.MudancaDeNivel;
+import ivens.versao.casa.munchkin.partida.model.JogadaDeCarta;
 import ivens.versao.casa.munchkin.partida.model.JogadorDaPartida;
 import ivens.versao.casa.munchkin.partida.model.Partida;
 import ivens.versao.casa.munchkin.partida.repository.PartidaRepository;
@@ -44,9 +56,10 @@ class PartidaServiceTest {
     private final MunchkinService munchkinService = mock(MunchkinService.class);
     private final BaralhoService baralhoService = mock(BaralhoService.class);
     private final VitoriaService vitoriaService = mock(VitoriaService.class);
+    private final SubaDeNivelService subaDeNivelService = mock(SubaDeNivelService.class);
     private final PartidaRepository partidaRepository = new PartidaRepository();
     private final PartidaService partidaService = new PartidaService(partidaRepository, munchkinService, baralhoService,
-            vitoriaService);
+            vitoriaService, subaDeNivelService);
 
     private final Vitoria classica = new Vitoria(TipoDeVitoria.CLASSICA, 10);
     private final Munchkin jogador = new Munchkin("Jogador");
@@ -62,6 +75,12 @@ class PartidaServiceTest {
         when(munchkinService.novoJogador()).thenReturn(jogador);
         when(munchkinService.novosBots(2)).thenReturn(List.of(bot1, bot2));
         when(baralhoService.distribuirMaosIniciais(3)).thenReturn(List.of(maoDoJogador, maoDoBot1, maoDoBot2));
+        // mudar de nível de verdade, para a jogada guardar o antes e o depois
+        doAnswer(chamada -> {
+            Munchkin munchkin = chamada.getArgument(0);
+            munchkin.setNivel(munchkin.getNivel() + chamada.<Integer>getArgument(1));
+            return null;
+        }).when(munchkinService).mudarNivel(any(), anyInt());
     }
 
     @Test
@@ -208,6 +227,125 @@ class PartidaServiceTest {
         when(munchkinService.podeVenderOuroPorNivel(jogador, 10)).thenReturn(true);
         partidaService.confirmarPronto(partida.getId());
         assertThat(partidaService.jogadorPodeVenderOuro(partida)).isFalse();
+    }
+
+    // ---------- cartas de nível ----------
+
+    /** Jogador no nível 0, bots nos níveis 2 e -1, vitória no 10. */
+    private final SituacaoDoJogador situacao = new SituacaoDoJogador(0, List.of(2, -1), 10);
+
+    private Partida partidaComNiveis() {
+        bot1.setNivel(2);
+        bot2.setNivel(-1);
+        return partidaService.criarComMaquina(2, TipoDeVitoria.CLASSICA, null);
+    }
+
+    @Test
+    void usosDaMaoSaoDeCadaCartaNaOrdemComONivelDeTodos() {
+        Partida partida = partidaComNiveis();
+        UsoDeCarta liberada = new UsoDeCarta(List.of(OpcaoDeNivel.SUBIR_1_NIVEL), false, null);
+        UsoDeCarta semUso = UsoDeCarta.impedida(ImpedimentoDeUso.CARTA_SEM_USO);
+        when(subaDeNivelService.uso(carta("a"), situacao)).thenReturn(liberada);
+        when(subaDeNivelService.uso(carta("b"), situacao)).thenReturn(semUso);
+        when(subaDeNivelService.uso(carta("c"), situacao)).thenReturn(liberada);
+
+        assertThat(partidaService.usosDaMaoDoJogador(partida)).containsExactly(liberada, semUso, liberada);
+    }
+
+    @Test
+    void usarCartaSobeONivelEACartaVaiParaODescarte() {
+        Partida partida = partidaComNiveis();
+        when(subaDeNivelService.usar(carta("b"), OpcaoDeNivel.SUBIR_1_NIVEL, situacao)).thenReturn(EfeitoDeNivel.SUBIR_1);
+
+        JogadaDeCarta jogada = partidaService.usarCartaDeNivel(partida.getId(), 1, OpcaoDeNivel.SUBIR_1_NIVEL, null);
+
+        verify(munchkinService).mudarNivel(jogador, 1);
+        assertThat(partida.getJogador().getMao()).containsExactly(carta("a"), carta("c"));
+        assertThat(partida.getDescarte(TipoDeCarta.TESOURO)).containsExactly(carta("b"));
+        assertThat(jogada).isEqualTo(new JogadaDeCarta(0, partida.getJogador(), carta("b"), null,
+                List.of(new MudancaDeNivel(partida.getJogador(), 0, 1))));
+    }
+
+    @Test
+    void descartarAMaoLevaAsOutrasCartasParaODescarte() {
+        Partida partida = partidaComNiveis();
+        when(subaDeNivelService.usar(carta("a"), OpcaoDeNivel.DESCARTAR_A_MAO_E_SUBIR_2_NIVEIS, situacao))
+                .thenReturn(new EfeitoDeNivel(2, 0, true));
+
+        JogadaDeCarta jogada =
+                partidaService.usarCartaDeNivel(partida.getId(), 0, OpcaoDeNivel.DESCARTAR_A_MAO_E_SUBIR_2_NIVEIS, null);
+
+        verify(munchkinService).mudarNivel(jogador, 2);
+        assertThat(jogada.efeitos()).containsExactly(new MaoDescartada(partida.getJogador(), 2),
+                new MudancaDeNivel(partida.getJogador(), 0, 2));
+        assertThat(partida.getJogador().getMao()).isEmpty();
+        assertThat(partida.getDescarte(TipoDeCarta.TESOURO)).containsExactly(carta("a"), carta("b"), carta("c"));
+    }
+
+    @Test
+    void roubarTiraUmNivelDoOponenteEscolhido() {
+        Partida partida = partidaComNiveis();
+        when(subaDeNivelService.precisaDeAlvo(carta("c"))).thenReturn(true);
+        when(subaDeNivelService.usar(carta("c"), OpcaoDeNivel.ROUBAR_1_NIVEL, situacao)).thenReturn(new EfeitoDeNivel(1, 1, false));
+
+        JogadaDeCarta jogada = partidaService.usarCartaDeNivel(partida.getId(), 2, OpcaoDeNivel.ROUBAR_1_NIVEL, 1);
+
+        verify(munchkinService).mudarNivel(jogador, 1);
+        verify(munchkinService).mudarNivel(bot2, -1);
+        JogadorDaPartida alvo = partida.getOponentes().get(1);
+        assertThat(jogada.alvo()).isSameAs(alvo);
+        assertThat(jogada.efeitos()).containsExactly(new MudancaDeNivel(partida.getJogador(), 0, 1),
+                new MudancaDeNivel(alvo, -1, -2));
+    }
+
+    @ParameterizedTest
+    @MethodSource("alvosInvalidos")
+    void cartaComAlvoPrecisaDeUmOponente(Integer alvo) {
+        Partida partida = partidaComNiveis();
+        when(subaDeNivelService.precisaDeAlvo(carta("c"))).thenReturn(true);
+
+        assertThatThrownBy(() -> partidaService.usarCartaDeNivel(partida.getId(), 2, OpcaoDeNivel.ROUBAR_1_NIVEL, alvo))
+                .isInstanceOf(AlvoInvalidoException.class);
+        assertThat(partida.getJogador().getMao()).hasSize(3);
+        verify(munchkinService, never()).mudarNivel(any(), anyInt());
+    }
+
+    static Stream<Integer> alvosInvalidos() {
+        return Stream.of(null, -1, 2);
+    }
+
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(ints = {-1, 3})
+    void posicaoForaDaMaoNaoUsa(int posicao) {
+        Partida partida = partidaComNiveis();
+
+        assertThatThrownBy(() -> partidaService.usarCartaDeNivel(partida.getId(), posicao, OpcaoDeNivel.SUBIR_1_NIVEL, null))
+                .isInstanceOf(CartaForaDaMaoException.class);
+    }
+
+    @Test
+    void cartaImpedidaNaoSaiDaMaoNemMudaNivel() {
+        Partida partida = partidaComNiveis();
+        when(subaDeNivelService.usar(carta("a"), OpcaoDeNivel.SUBIR_1_NIVEL, situacao))
+                .thenThrow(new UsoDeCartaNaoPermitidoException("a", ImpedimentoDeUso.NIVEL_DA_VITORIA));
+
+        assertThatThrownBy(() -> partidaService.usarCartaDeNivel(partida.getId(), 0, OpcaoDeNivel.SUBIR_1_NIVEL, null))
+                .isInstanceOf(UsoDeCartaNaoPermitidoException.class);
+        assertThat(partida.getJogador().getMao()).hasSize(3);
+        assertThat(partida.getDescarte(TipoDeCarta.TESOURO)).isEmpty();
+        verify(munchkinService, never()).mudarNivel(any(), anyInt());
+    }
+
+    @Test
+    void cartaDeNivelValeNaPreparacaoEDepoisDela() {
+        Partida partida = partidaComNiveis();
+        when(subaDeNivelService.usar(any(), any(), any())).thenReturn(EfeitoDeNivel.SUBIR_1);
+
+        partidaService.usarCartaDeNivel(partida.getId(), 0, OpcaoDeNivel.SUBIR_1_NIVEL, null);
+        partidaService.confirmarPronto(partida.getId());
+        partidaService.usarCartaDeNivel(partida.getId(), 0, OpcaoDeNivel.SUBIR_1_NIVEL, null);
+
+        verify(munchkinService, org.mockito.Mockito.times(2)).mudarNivel(jogador, 1);
     }
 
     @Test

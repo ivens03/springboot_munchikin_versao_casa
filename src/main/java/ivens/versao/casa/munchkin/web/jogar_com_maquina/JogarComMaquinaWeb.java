@@ -1,6 +1,8 @@
 package ivens.versao.casa.munchkin.web.jogar_com_maquina;
 
 import ivens.versao.casa.munchkin.carta.dto.CartaDtoMapper;
+import ivens.versao.casa.munchkin.carta.dto.UsoDeCartaDtoMapper;
+import ivens.versao.casa.munchkin.carta.model.OpcaoDeNivel;
 import ivens.versao.casa.munchkin.jogo.dto.VitoriaDtoMapper;
 import ivens.versao.casa.munchkin.jogo.model.TipoDeVitoria;
 import ivens.versao.casa.munchkin.munchkin.dto.MunchkinDto;
@@ -8,6 +10,7 @@ import ivens.versao.casa.munchkin.munchkin.dto.MunchkinDtoMapper;
 import ivens.versao.casa.munchkin.munchkin.dto.OponenteDto;
 import ivens.versao.casa.munchkin.munchkin.model.Munchkin;
 import ivens.versao.casa.munchkin.munchkin.service.MunchkinService;
+import ivens.versao.casa.munchkin.partida.dto.JogadaDeCartaDtoMapper;
 import ivens.versao.casa.munchkin.partida.dto.RodadaDtoMapper;
 import ivens.versao.casa.munchkin.partida.model.Partida;
 import ivens.versao.casa.munchkin.partida.service.PartidaService;
@@ -44,6 +47,8 @@ public class JogarComMaquinaWeb {
     private final CartaDtoMapper cartaDtoMapper;
     private final VitoriaDtoMapper vitoriaDtoMapper;
     private final RodadaDtoMapper rodadaDtoMapper;
+    private final UsoDeCartaDtoMapper usoDeCartaDtoMapper;
+    private final JogadaDeCartaDtoMapper jogadaDeCartaDtoMapper;
 
     /**
      * Nova partida com o jogador e os bots escolhidos na home, e vai para a mesa dela (um F5 lá não distribui de novo).
@@ -69,6 +74,8 @@ public class JogarComMaquinaWeb {
         model.addAttribute("jogador", paraDto(partida.getJogador().getMunchkin()));
         model.addAttribute("podeVenderOuro", partidaService.jogadorPodeVenderOuro(partida));
         model.addAttribute("mao", cartaDtoMapper.paraDto(partida.getJogador().getMao()));
+        model.addAttribute("usos", usoDeCartaDtoMapper.paraDto(partidaService.usosDaMaoDoJogador(partida)));
+        model.addAttribute("opcoesDeUso", usoDeCartaDtoMapper.todasAsOpcoes());
         model.addAttribute("oponentes", partida.getOponentes().stream()
                 .map(oponente -> new OponenteDto(paraDto(oponente.getMunchkin()),
                         cartaDtoMapper.paraMaoFechada(oponente.getMao())))
@@ -93,6 +100,18 @@ public class JogarComMaquinaWeb {
     @PostMapping("/{id}/vender-ouro")
     public String venderOuro(@PathVariable UUID id) {
         partidaService.venderOuroPorNivel(id);
+        return MESA + id;
+    }
+
+    /**
+     * Usa uma carta da mão (arrastada para a mesa e confirmada na janela de uso).
+     * "aviso" só vai neste redirecionamento: diz o que a carta fez e some.
+     */
+    @PostMapping("/{id}/usar-carta")
+    public String usarCarta(@PathVariable UUID id, @RequestParam int posicao, @RequestParam OpcaoDeNivel opcao,
+                            @RequestParam(required = false) Integer alvo, RedirectAttributes redirecionamento) {
+        redirecionamento.addFlashAttribute("aviso",
+                jogadaDeCartaDtoMapper.aviso(partidaService.usarCartaDeNivel(id, posicao, opcao, alvo)));
         return MESA + id;
     }
 

@@ -1,7 +1,10 @@
 package ivens.versao.casa.munchkin.exception;
 
+import ivens.versao.casa.munchkin.carta.exception.UsoDeCartaNaoPermitidoException;
 import ivens.versao.casa.munchkin.jogo.exception.NivelDeVitoriaInvalidoException;
 import ivens.versao.casa.munchkin.munchkin.exception.VendaDeOuroNaoPermitidaException;
+import ivens.versao.casa.munchkin.partida.exception.AlvoInvalidoException;
+import ivens.versao.casa.munchkin.partida.exception.CartaForaDaMaoException;
 import ivens.versao.casa.munchkin.partida.exception.ForaDaHoraDeVenderOuroException;
 import ivens.versao.casa.munchkin.partida.exception.OrdemDaMaoInvalidaException;
 import ivens.versao.casa.munchkin.partida.exception.PartidaNaoEncontradaException;
@@ -17,11 +20,12 @@ import java.io.IOException;
 public class GlobalExceptionHandler {
 
     /**
-     * Escolha inválida (nível de vitória, ordem da mão, venda de ouro): pedido inválido (400),
+     * Escolha inválida (nível de vitória, ordem da mão, venda de ouro, uso de carta): pedido inválido (400),
      * como os outros parâmetros fora do limite.
      */
     @ExceptionHandler({NivelDeVitoriaInvalidoException.class, OrdemDaMaoInvalidaException.class,
-            VendaDeOuroNaoPermitidaException.class, ForaDaHoraDeVenderOuroException.class})
+            VendaDeOuroNaoPermitidaException.class, ForaDaHoraDeVenderOuroException.class,
+            UsoDeCartaNaoPermitidoException.class, CartaForaDaMaoException.class, AlvoInvalidoException.class})
     public void pedidoInvalido(RuntimeException excecao, HttpServletResponse resposta) throws IOException {
         resposta.sendError(HttpStatus.BAD_REQUEST.value(), excecao.getMessage());
     }

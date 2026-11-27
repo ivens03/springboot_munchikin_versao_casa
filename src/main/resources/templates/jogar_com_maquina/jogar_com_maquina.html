@@ -16,10 +16,14 @@
     <section th:replace="~{mesa/mesa :: placar(${oponentes})}"></section>
     <dl th:replace="~{mesa/mesa :: infoDoJogador(${jogador}, ${podeVenderOuro},
             @{/jogar-com-maquina/{id}/vender-ouro(id=${partidaId})})}"></dl>
-    <th:block th:replace="~{mesa/mesa :: maoDoJogador(${jogador}, ${mao},
+    <p th:replace="~{mesa/mesa :: aviso(${aviso})}"></p>
+    <th:block th:replace="~{mesa/mesa :: usoDeCarta(${oponentes}, ${opcoesDeUso},
+            @{/jogar-com-maquina/{id}/usar-carta(id=${partidaId})})}"></th:block>
+    <th:block th:replace="~{mesa/mesa :: maoDoJogador(${jogador}, ${mao}, ${usos},
             @{/jogar-com-maquina/{id}/mao(id=${partidaId})})}"></th:block>
 </main>
 <script th:src="@{/js/mesa/compra_inicial.js}"></script>
 <script th:src="@{/js/mesa/organizar_mao.js}"></script>
+<script th:src="@{/js/mesa/usar_carta.js}"></script>
 </body>
 </html>

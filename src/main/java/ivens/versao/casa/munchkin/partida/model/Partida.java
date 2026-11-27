@@ -28,6 +28,10 @@ public class Partida {
     @Setter
     private int rodada;
 
+    /** Pilhas de descarte, uma por tipo de carta (a carta usada vai para a pilha de onde saiu). */
+    @Getter(lombok.AccessLevel.NONE)
+    private final Map<TipoDeCarta, List<Carta>> descartes = new EnumMap<>(TipoDeCarta.class);
+
     public Partida(UUID id, Vitoria vitoria, List<JogadorDaPartida> jogadores) {
         this.id = id;
         this.vitoria = vitoria;
@@ -42,5 +46,13 @@ public class Partida {
 
     public List<JogadorDaPartida> getOponentes() {
         return jogadores.subList(1, jogadores.size());
+    }
+
+    public void descartar(Carta carta) {
+        descartes.computeIfAbsent(carta.tipo(), tipo -> new ArrayList<>()).add(carta);
+    }
+
+    public List<Carta> getDescarte(TipoDeCarta tipo) {
+        return List.copyOf(descartes.getOrDefault(tipo, List.of()));
     }
 }

@@ -41,11 +41,12 @@ html, body {
 }
 
 /*
- * a mão sobe com o mouse no leque; continua em cima enquanto arrasta uma carta ou com o mouse
- * no botão das infos
+ * a mão sobe com o mouse no leque; continua em cima enquanto arrasta uma carta, enquanto a carta solta na mesa
+ * está sendo jogada ou com o mouse no botão das infos
  */
 .mesa:has(.mao:hover),
 .mesa:has(.carta--arrastando),
+.mesa:has(.carta--solta),
 .mesa:has(.jogador__vender:hover) {
     --descida-da-mao: 8vh;
 }
@@ -422,10 +423,13 @@ html, body {
     cursor: grabbing;
 }
 
-/* carta selecionada: salta para cima, cresce e fica reta, na frente das outras */
+/* carta selecionada: salta para cima, cresce e fica reta, na frente das outras; a solta na mesa fica onde caiu */
 .mao:not(:has(.carta--arrastando)) .carta:hover,
-.mao .carta--arrastando {
+.mao .carta--arrastando,
+.mao .carta--solta {
     z-index: 10;
+    /* puxada para cima (rumo à mesa), a carta acompanha o mouse; na mesa, também para os lados */
+    translate: var(--puxada-x, 0px) var(--puxada, 0px);
     transform:
         translateX(calc(var(--deslocamento) * var(--espaco-entre-cartas)))
         translateY(-7vh)
@@ -638,8 +642,13 @@ html, body {
         transition: none;
     }
 
-    .rodada--comecou {
+    .rodada--comecou,
+    .aviso {
         animation-duration: 1ms;
+    }
+
+    .soltar-carta {
+        transition: none;
     }
 }
 
@@ -686,4 +695,148 @@ html, body {
 /* carta do oponente: só o verso, já virado para quem olha */
 .carta__costas {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.55);
+}
+
+/* ---------- usar carta: área de soltar, janela de uso e aviso ---------- */
+
+/* aparece só enquanto uma carta é arrastada; acende quando a carta está em cima dela (mesa--soltando-carta) */
+.soltar-carta {
+    position: absolute;
+    top: calc(var(--centro-da-mesa) - 4vh);
+    left: 50%;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: min(34rem, 44vw);
+    height: 24vh;
+    transform: translate(-50%, -50%);
+    font: 1.1rem Georgia, "Times New Roman", serif;
+    color: #f6e3b4;
+    background: rgba(29, 18, 10, 0.94);
+    border: 2px dashed rgba(217, 166, 58, 0.6);
+    border-radius: 1rem;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease, visibility 0.15s, background 0.15s ease, border-color 0.15s ease;
+}
+
+.mesa:has(.carta--arrastando) .soltar-carta {
+    opacity: 1;
+    visibility: visible;
+}
+
+.mesa--soltando-carta .soltar-carta {
+    background: rgba(92, 62, 18, 0.96);
+    border-style: solid;
+    border-color: #f2c35a;
+}
+
+.uso {
+    max-width: min(36rem, 92vw);
+    /* o <dialog> centraliza com margem automática */
+    margin: auto;
+    padding: 0;
+    font-family: Georgia, "Times New Roman", serif;
+    color: #f6e3b4;
+    background: #1d120a;
+    border: 1px solid #d9a63a;
+    border-radius: 0.8rem;
+}
+
+.uso::backdrop {
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.uso [hidden] {
+    display: none;
+}
+
+.uso__formulario {
+    display: flex;
+    gap: 1.2rem;
+    padding: 1.2rem;
+}
+
+.uso__carta {
+    width: 10rem;
+    height: auto;
+    border-radius: 0.4rem;
+}
+
+.uso__conteudo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.uso__titulo {
+    margin: 0;
+    font-size: 1.25rem;
+    color: #d9a63a;
+}
+
+.uso__impedimento {
+    margin: 0;
+}
+
+.uso__alvo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.uso__alvo select {
+    padding: 0.3rem;
+    font: inherit;
+}
+
+.uso__botoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: auto;
+}
+
+.uso__botoes button {
+    padding: 0.35rem 0.9rem;
+    font: bold 0.95rem Georgia, "Times New Roman", serif;
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.uso__opcao {
+    color: #1d120a;
+    background: #d9a63a;
+    border: 1px solid #f6e3b4;
+}
+
+.uso__opcao:hover,
+.uso__opcao:focus-visible {
+    background: #f2c35a;
+}
+
+.uso__cancelar {
+    color: #f6e3b4;
+    background: transparent;
+    border: 1px solid rgba(246, 227, 180, 0.5);
+}
+
+/* acima do painel da rodada; fica uns segundos e some */
+.aviso {
+    position: absolute;
+    top: calc(var(--centro-da-mesa) - 17vh);
+    left: 50%;
+    z-index: 5;
+    max-width: min(40rem, 60vw);
+    margin: 0;
+    padding: 0.5rem 1.1rem;
+    transform: translateX(-50%);
+    font: 1rem Georgia, "Times New Roman", serif;
+    text-align: center;
+    color: #f6e3b4;
+    background: rgba(29, 18, 10, 0.9);
+    border: 1px solid #d9a63a;
+    border-radius: 0.8rem;
+    animation: sumir-rodada 0.6s ease 6s forwards;
 }

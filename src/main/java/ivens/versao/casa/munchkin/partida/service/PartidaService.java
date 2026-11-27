@@ -1,15 +1,26 @@
 package ivens.versao.casa.munchkin.partida.service;
 
 import ivens.versao.casa.munchkin.carta.model.Carta;
+import ivens.versao.casa.munchkin.carta.model.OpcaoDeNivel;
 import ivens.versao.casa.munchkin.carta.service.BaralhoService;
+import ivens.versao.casa.munchkin.carta.service.nivel.EfeitoDeNivel;
+import ivens.versao.casa.munchkin.carta.service.nivel.SituacaoDoJogador;
+import ivens.versao.casa.munchkin.carta.service.nivel.SubaDeNivelService;
+import ivens.versao.casa.munchkin.carta.service.nivel.UsoDeCarta;
 import ivens.versao.casa.munchkin.jogo.model.TipoDeVitoria;
 import ivens.versao.casa.munchkin.jogo.model.Vitoria;
 import ivens.versao.casa.munchkin.jogo.service.VitoriaService;
 import ivens.versao.casa.munchkin.munchkin.model.Munchkin;
 import ivens.versao.casa.munchkin.munchkin.service.MunchkinService;
+import ivens.versao.casa.munchkin.partida.exception.AlvoInvalidoException;
+import ivens.versao.casa.munchkin.partida.exception.CartaForaDaMaoException;
 import ivens.versao.casa.munchkin.partida.exception.ForaDaHoraDeVenderOuroException;
 import ivens.versao.casa.munchkin.partida.exception.OrdemDaMaoInvalidaException;
 import ivens.versao.casa.munchkin.partida.exception.PartidaNaoEncontradaException;
+import ivens.versao.casa.munchkin.partida.model.EfeitoDaJogada;
+import ivens.versao.casa.munchkin.partida.model.EfeitoDaJogada.MaoDescartada;
+import ivens.versao.casa.munchkin.partida.model.EfeitoDaJogada.MudancaDeNivel;
+import ivens.versao.casa.munchkin.partida.model.JogadaDeCarta;
 import ivens.versao.casa.munchkin.partida.model.JogadorDaPartida;
 import ivens.versao.casa.munchkin.partida.model.Partida;
 import ivens.versao.casa.munchkin.partida.repository.PartidaRepository;
@@ -37,6 +48,7 @@ public class PartidaService {
     private final MunchkinService munchkinService;
     private final BaralhoService baralhoService;
     private final VitoriaService vitoriaService;
+    private final SubaDeNivelService subaDeNivelService;
 
     /** Mesa com o jogador e os bots, já com as mãos distribuídas, na rodada de preparação. */
     public Partida criarComMaquina(int bots, TipoDeVitoria tipoDeVitoria, Integer nivelDeVitoria) {
@@ -99,6 +111,84 @@ public class PartidaService {
         }
         munchkinService.venderOuroPorNivel(partida.getJogador().getMunchkin(), partida.getVitoria().nivel());
         return partidaRepository.salvar(partida);
+    }
+
+    /** Como cada carta da mão do jogador pode ser usada agora, na ordem da mão. */
+    public List<UsoDeCarta> usosDaMaoDoJogador(Partida partida) {
+        SituacaoDoJogador situacao = situacaoDe(partida, partida.getJogador());
+        return partida.getJogador().getMao().stream()
+                .map(carta -> subaDeNivelService.uso(carta, situacao))
+                .toList();
+    }
+
+    /**
+     * O jogador usa uma carta de subir de nível. Pode ser a qualquer momento, inclusive na preparação
+     * (regra original), respeitando o texto da carta. A carta vai para o descarte.
+     *
+     * @param posicao posição da carta na mão
+     * @param alvo    posição do oponente escolhido, para a carta que pede um (ex.: Roubar 1 Nível)
+     */
+    public JogadaDeCarta usarCartaDeNivel(UUID id, int posicao, OpcaoDeNivel opcao, Integer alvo) {
+        Partida partida = buscar(id);
+        JogadorDaPartida jogador = partida.getJogador();
+        List<Carta> mao = jogador.getMao();
+        if (posicao < 0 || posicao >= mao.size()) {
+            throw new CartaForaDaMaoException(posicao, mao.size());
+        }
+        Carta carta = mao.get(posicao);
+        JogadorDaPartida escolhido = null;
+        if (subaDeNivelService.precisaDeAlvo(carta)) {
+            List<JogadorDaPartida> oponentes = partida.getOponentes();
+            if (alvo == null || alvo < 0 || alvo >= oponentes.size()) {
+                throw new AlvoInvalidoException(alvo, oponentes.size());
+            }
+            escolhido = oponentes.get(alvo);
+        }
+        return aplicarCartaDeNivel(partida, jogador, posicao, opcao, escolhido);
+    }
+
+    /** Confere a carta pelo SubaDeNivelService, tira da mão, descarta e muda os níveis. */
+    private JogadaDeCarta aplicarCartaDeNivel(Partida partida, JogadorDaPartida jogador, int posicao,
+                                                     OpcaoDeNivel opcao, JogadorDaPartida alvo) {
+        List<Carta> mao = jogador.getMao();
+        Carta carta = mao.get(posicao);
+        EfeitoDeNivel efeito = subaDeNivelService.usar(carta, opcao, situacaoDe(partida, jogador));
+
+        List<EfeitoDaJogada> efeitos = new ArrayList<>();
+        mao.remove(posicao);
+        partida.descartar(carta);
+        if (efeito.descartaAMao()) {
+            efeitos.add(new MaoDescartada(jogador, mao.size()));
+            mao.forEach(partida::descartar);
+            mao.clear();
+        }
+        efeitos.add(mudarNivel(jogador, efeito.niveisDoJogador()));
+        if (alvo != null) {
+            efeitos.add(mudarNivel(alvo, -efeito.niveisQueOAlvoPerde()));
+        }
+        JogadaDeCarta jogada = new JogadaDeCarta(partida.getRodada(), jogador, carta, alvo, efeitos);
+        partidaRepository.salvar(partida);
+        return jogada;
+    }
+
+    private MudancaDeNivel mudarNivel(JogadorDaPartida jogador, int niveis) {
+        int antes = jogador.getMunchkin().getNivel();
+        munchkinService.mudarNivel(jogador.getMunchkin(), niveis);
+        return new MudancaDeNivel(jogador, antes, jogador.getMunchkin().getNivel());
+    }
+
+    /** O que a carta de nível precisa saber da mesa, do ponto de vista de quem vai usar. */
+    private static SituacaoDoJogador situacaoDe(Partida partida, JogadorDaPartida jogador) {
+        return new SituacaoDoJogador(jogador.getMunchkin().getNivel(), niveis(outros(partida, jogador)),
+                partida.getVitoria().nivel());
+    }
+
+    private static List<JogadorDaPartida> outros(Partida partida, JogadorDaPartida jogador) {
+        return partida.getJogadores().stream().filter(outro -> outro != jogador).toList();
+    }
+
+    private static List<Integer> niveis(List<JogadorDaPartida> jogadores) {
+        return jogadores.stream().map(jogador -> jogador.getMunchkin().getNivel()).toList();
     }
 
     /**

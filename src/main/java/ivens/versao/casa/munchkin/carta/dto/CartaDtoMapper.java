@@ -36,13 +36,8 @@ public class CartaDtoMapper {
     }
 
     /** "masmorra/5_racas/homem_lagarto_2_masmorra.jpg" → "Homem lagarto" */
-    String nome(Carta carta) {
-        String arquivo = carta.imagem().substring(carta.imagem().lastIndexOf('/') + 1);
-        String nome = arquivo
-                .replaceFirst("\\.jpg$", "")
-                .replaceFirst("_" + carta.tipo().getPasta() + "$", "")
-                .replaceFirst("_\\d+$", "")
-                .replace('_', ' ');
+    public String nome(Carta carta) {
+        String nome = carta.chave().replace('_', ' ');
         return Character.toUpperCase(nome.charAt(0)) + nome.substring(1);
     }
 }

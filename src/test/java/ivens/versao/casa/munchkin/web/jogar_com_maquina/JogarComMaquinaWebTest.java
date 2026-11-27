@@ -4,6 +4,13 @@ import ivens.versao.casa.munchkin.carta.dto.CartaDto;
 import ivens.versao.casa.munchkin.carta.dto.CartaDtoMapper;
 import ivens.versao.casa.munchkin.carta.dto.CartaFechadaDto;
 import ivens.versao.casa.munchkin.carta.dto.MaoFechadaDto;
+import ivens.versao.casa.munchkin.carta.dto.OpcaoDto;
+import ivens.versao.casa.munchkin.carta.dto.UsoDeCartaDto;
+import ivens.versao.casa.munchkin.carta.dto.UsoDeCartaDtoMapper;
+import ivens.versao.casa.munchkin.carta.exception.UsoDeCartaNaoPermitidoException;
+import ivens.versao.casa.munchkin.carta.model.ImpedimentoDeUso;
+import ivens.versao.casa.munchkin.carta.model.OpcaoDeNivel;
+import ivens.versao.casa.munchkin.carta.service.nivel.UsoDeCarta;
 import ivens.versao.casa.munchkin.carta.model.Carta;
 import ivens.versao.casa.munchkin.carta.model.TipoDeCarta;
 import ivens.versao.casa.munchkin.jogo.dto.VitoriaDto;
@@ -17,14 +24,19 @@ import ivens.versao.casa.munchkin.munchkin.dto.OponenteDto;
 import ivens.versao.casa.munchkin.munchkin.exception.VendaDeOuroNaoPermitidaException;
 import ivens.versao.casa.munchkin.munchkin.model.Munchkin;
 import ivens.versao.casa.munchkin.munchkin.service.MunchkinService;
+import ivens.versao.casa.munchkin.partida.dto.JogadaDeCartaDtoMapper;
 import ivens.versao.casa.munchkin.partida.dto.RodadaDto;
 import ivens.versao.casa.munchkin.partida.dto.RodadaDtoMapper;
+import ivens.versao.casa.munchkin.partida.exception.AlvoInvalidoException;
+import ivens.versao.casa.munchkin.partida.exception.CartaForaDaMaoException;
 import ivens.versao.casa.munchkin.partida.exception.ForaDaHoraDeVenderOuroException;
 import ivens.versao.casa.munchkin.partida.exception.OrdemDaMaoInvalidaException;
 import ivens.versao.casa.munchkin.partida.exception.PartidaNaoEncontradaException;
 import ivens.versao.casa.munchkin.partida.model.JogadorDaPartida;
 import ivens.versao.casa.munchkin.partida.model.Partida;
 import ivens.versao.casa.munchkin.partida.service.PartidaService;
+import ivens.versao.casa.munchkin.partida.model.EfeitoDaJogada.MudancaDeNivel;
+import ivens.versao.casa.munchkin.partida.model.JogadaDeCarta;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -77,6 +89,12 @@ class JogarComMaquinaWebTest {
 
     @MockitoBean
     private RodadaDtoMapper rodadaDtoMapper;
+
+    @MockitoBean
+    private UsoDeCartaDtoMapper usoDeCartaDtoMapper;
+
+    @MockitoBean
+    private JogadaDeCartaDtoMapper jogadaDeCartaDtoMapper;
 
     private final Vitoria classica = new Vitoria(TipoDeVitoria.CLASSICA, 10);
     private final Munchkin jogador = new Munchkin("Jogador");
@@ -162,6 +180,12 @@ class JogarComMaquinaWebTest {
         when(munchkinDtoMapper.paraDto(bot, 0)).thenReturn(botDto);
         when(cartaDtoMapper.paraDto(maoDoJogador)).thenReturn(maoDoJogadorDto);
         when(cartaDtoMapper.paraMaoFechada(maoDoBot)).thenReturn(maoDoBotDto);
+        List<UsoDeCarta> usos = List.of(new UsoDeCarta(List.of(OpcaoDeNivel.SUBIR_1_NIVEL), false, null));
+        List<UsoDeCartaDto> usosDto = List.of(new UsoDeCartaDto(List.of("SUBIR_1_NIVEL"), false, null));
+        List<OpcaoDto> opcoesDto = List.of(new OpcaoDto("SUBIR_1_NIVEL", "Subir 1 nível"));
+        when(partidaService.usosDaMaoDoJogador(partida)).thenReturn(usos);
+        when(usoDeCartaDtoMapper.paraDto(usos)).thenReturn(usosDto);
+        when(usoDeCartaDtoMapper.todasAsOpcoes()).thenReturn(opcoesDto);
 
         mockMvc.perform(get(urlDaMesa))
                 .andExpect(status().isOk())
@@ -172,6 +196,8 @@ class JogarComMaquinaWebTest {
                 .andExpect(model().attribute("jogador", jogadorDto))
                 .andExpect(model().attribute("podeVenderOuro", false))
                 .andExpect(model().attribute("mao", maoDoJogadorDto))
+                .andExpect(model().attribute("usos", usosDto))
+                .andExpect(model().attribute("opcoesDeUso", opcoesDto))
                 .andExpect(model().attribute("oponentes", List.of(new OponenteDto(botDto, maoDoBotDto))))
                 .andExpect(model().attributeDoesNotExist("distribuindo"));
     }
@@ -238,6 +264,94 @@ class JogarComMaquinaWebTest {
         when(partidaService.venderOuroPorNivel(partida.getId())).thenThrow(new ForaDaHoraDeVenderOuroException(1));
 
         mockMvc.perform(post(urlDaMesa + "/vender-ouro"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void cartaDaMaoLevaComoPodeSerUsadaEAJanelaTemOsBotoesEOsOponentes() throws Exception {
+        mesaDepoisDaPreparacao();
+        when(cartaDtoMapper.paraDto(maoDoJogador)).thenReturn(List.of(new CartaDto("tesouro", "Roubar 1 nivel",
+                "/img/cartas/tesouro/3_suba_de_nivel/roubar_1_nivel_tesouro.jpg", "/img/cartas/traseira/verso_tesouro.jpg")));
+        when(usoDeCartaDtoMapper.paraDto(List.of()))
+                .thenReturn(List.of(new UsoDeCartaDto(List.of("ROUBAR_1_NIVEL"), true, null)));
+        when(usoDeCartaDtoMapper.todasAsOpcoes()).thenReturn(List.of(new OpcaoDto("ROUBAR_1_NIVEL", "Roubar 1 nível")));
+
+        mockMvc.perform(get(urlDaMesa))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-opcoes=\"ROUBAR_1_NIVEL\"")))
+                .andExpect(content().string(containsString("data-alvo=\"true\"")))
+                .andExpect(content().string(not(containsString("data-impedimento"))))
+                .andExpect(content().string(containsString("action=\"" + urlDaMesa + "/usar-carta\"")))
+                .andExpect(content().string(containsString("value=\"ROUBAR_1_NIVEL\"")))
+                .andExpect(content().string(containsString("Bot 1 (nível 0)")));
+    }
+
+    @Test
+    void cartaImpedidaLevaOMotivo() throws Exception {
+        mesaDepoisDaPreparacao();
+        when(cartaDtoMapper.paraDto(maoDoJogador)).thenReturn(List.of(new CartaDto("tesouro", "Espada",
+                "/img/cartas/tesouro/1_itens/espada_tesouro.jpg", "/img/cartas/traseira/verso_tesouro.jpg")));
+        when(usoDeCartaDtoMapper.paraDto(List.of()))
+                .thenReturn(List.of(new UsoDeCartaDto(List.of(), false, "Esta carta ainda não pode ser usada no jogo.")));
+
+        mockMvc.perform(get(urlDaMesa))
+                .andExpect(status().isOk())
+                // sem opção o Thymeleaf nem escreve o data-opcoes (o usar_carta.js trata como vazio)
+                .andExpect(content().string(not(containsString("data-opcoes"))))
+                .andExpect(content().string(containsString(
+                        "data-impedimento=\"Esta carta ainda não pode ser usada no jogo.\"")));
+    }
+
+    @Test
+    void usarCartaVoltaParaAMesaComOAviso() throws Exception {
+        JogadaDeCarta resultado = new JogadaDeCarta(0, partida.getJogador(), maoDoJogador.getFirst(),
+                partida.getOponentes().getFirst(), List.of());
+        when(partidaService.usarCartaDeNivel(partida.getId(), 0, OpcaoDeNivel.ROUBAR_1_NIVEL, 0)).thenReturn(resultado);
+        when(jogadaDeCartaDtoMapper.aviso(resultado)).thenReturn("Você usou Roubar 1 nivel");
+
+        mockMvc.perform(post(urlDaMesa + "/usar-carta").param("posicao", "0").param("opcao", "ROUBAR_1_NIVEL")
+                        .param("alvo", "0"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl(urlDaMesa))
+                .andExpect(flash().attribute("aviso", "Você usou Roubar 1 nivel"));
+    }
+
+    @Test
+    void usarCartaSemAlvoNaoMandaAlvo() throws Exception {
+        mockMvc.perform(post(urlDaMesa + "/usar-carta").param("posicao", "2").param("opcao", "SUBIR_1_NIVEL"))
+                .andExpect(status().is3xxRedirection());
+
+        verify(partidaService).usarCartaDeNivel(partida.getId(), 2, OpcaoDeNivel.SUBIR_1_NIVEL, null);
+    }
+
+    @Test
+    void avisoDaCartaUsadaApareceNaMesa() throws Exception {
+        mesaDepoisDaPreparacao();
+
+        mockMvc.perform(get(urlDaMesa).flashAttr("aviso", "Você usou Pagar a pizza e subiu para o nível 1."))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Você usou Pagar a pizza e subiu para o nível 1.")));
+    }
+
+    @Test
+    void opcaoQueNaoExisteEPedidoInvalido() throws Exception {
+        mockMvc.perform(post(urlDaMesa + "/usar-carta").param("posicao", "0").param("opcao", "VOAR"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(partidaService);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1, 2})
+    void usoDeCartaRecusadoEPedidoInvalido(int caso) throws Exception {
+        RuntimeException recusa = switch (caso) {
+            case 0 -> new UsoDeCartaNaoPermitidoException("pagar_a_pizza", ImpedimentoDeUso.NIVEL_DA_VITORIA);
+            case 1 -> new CartaForaDaMaoException(9, 1);
+            default -> new AlvoInvalidoException(null, 1);
+        };
+        when(partidaService.usarCartaDeNivel(partida.getId(), 0, OpcaoDeNivel.SUBIR_1_NIVEL, null)).thenThrow(recusa);
+
+        mockMvc.perform(post(urlDaMesa + "/usar-carta").param("posicao", "0").param("opcao", "SUBIR_1_NIVEL"))
                 .andExpect(status().isBadRequest());
     }
 

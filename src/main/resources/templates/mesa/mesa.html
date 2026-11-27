@@ -5,7 +5,8 @@
     /css/mesa/mesa.css        → visual e mecânica (mão sobe no hover, carta salta, leque)
     /js/mesa/compra_inicial.js → animação das cartas saindo das pilhas e o aviso da vitória no fim
                                  (só quando a <main> tem data-distribuindo: logo depois de criar a partida)
-    /js/mesa/organizar_mao.js  → arrastar uma carta no leque muda a ordem da mão
+    /js/mesa/organizar_mao.js  → arrastar uma carta no leque muda a ordem da mão; arrastar para cima, na mesa, usa a carta
+    /js/mesa/usar_carta.js     → joga a carta solta na mesa ou abre a janela de uso (fragmento usoDeCarta)
 -->
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
 <body>
@@ -94,8 +95,10 @@
 <!--
   Mãos do jogador segurando o leque com as cartas dele.
   data-posicao é a posição da carta na mão do servidor; acaoOrdenar recebe a ordem nova (organizar_mao.js).
+  usos (um por carta, na ordem da mão) diz como a carta pode ser usada: data-opcoes (liberadas agora),
+  data-alvo (pede um oponente) e data-impedimento (por que não pode), lidos pelo usar_carta.js.
 -->
-<th:block th:fragment="maoDoJogador(jogador, cartas, acaoOrdenar)">
+<th:block th:fragment="maoDoJogador(jogador, cartas, usos, acaoOrdenar)">
     <div class="segurador segurador--esquerdo">
         <img class="segurador__mao" th:src="@{${jogador.imagemDaMaoEsquerda}}"
              th:alt="|Mão esquerda do ${jogador.nome} (${jogador.raca})|">
@@ -108,7 +111,10 @@
     <ol class="mao" aria-label="Cartas na mão" th:style="|--total: ${#lists.size(cartas)}|"
         th:attr="data-ordenar=${acaoOrdenar}">
         <li class="carta" th:each="carta, posicao : ${cartas}"
-            th:attr="data-pilha=${carta.tipo},data-posicao=${posicao.index}"
+            th:with="uso=${usos[posicao.index]}"
+            th:attr="data-pilha=${carta.tipo},data-posicao=${posicao.index},
+                     data-opcoes=${#strings.listJoin(uso.opcoes, ' ')},data-alvo=${uso.precisaDeAlvo},
+                     data-impedimento=${uso.impedimento}"
             th:style="|--i: ${posicao.index}|">
             <div class="carta__interior">
                 <img class="carta__frente" th:src="@{${carta.imagem}}" th:alt="${carta.nome}" draggable="false">
@@ -117,6 +123,42 @@
         </li>
     </ol>
 </th:block>
+
+<!--
+  Usar carta: puxando uma carta do leque para cima, aparece no centro da mesa a área de soltar.
+  Soltando lá, a carta com uma opção só é jogada direto (usar_carta.js). A janela só abre quando há escolha
+  (um botão por OpcaoDto: só as da carta aparecem; e o oponente, se a carta pede) ou para dizer por que não pode.
+-->
+<th:block th:fragment="usoDeCarta(oponentes, opcoes, acaoUsar)">
+    <div class="soltar-carta" aria-hidden="true">Solte aqui para usar a carta</div>
+    <dialog class="uso" aria-labelledby="titulo-do-uso">
+        <form class="uso__formulario" method="post" th:action="${acaoUsar}">
+            <img class="uso__carta" src="data:," alt="">
+            <div class="uso__conteudo">
+                <h2 id="titulo-do-uso" class="uso__titulo">Usar carta</h2>
+                <p class="uso__impedimento" hidden></p>
+                <input type="hidden" name="posicao" value="0">
+                <label class="uso__alvo" hidden>
+                    <span>De quem?</span>
+                    <select name="alvo" disabled>
+                        <option th:each="oponente, posicao : ${oponentes}" th:value="${posicao.index}"
+                                th:text="|${oponente.munchkin.nome} (nível ${oponente.munchkin.nivel})|">Bot 1 (nível 0)</option>
+                    </select>
+                </label>
+                <div class="uso__botoes">
+                    <button th:each="opcao : ${opcoes}" class="uso__opcao" type="submit" name="opcao"
+                            th:value="${opcao.valor}" th:text="${opcao.texto}" hidden>Subir 1 nível</button>
+                    <button class="uso__cancelar" type="button">Cancelar</button>
+                </div>
+            </div>
+        </form>
+    </dialog>
+</th:block>
+
+<!-- o que a última carta usada fez; aparece logo depois de usar e some sozinho -->
+<p th:fragment="aviso(aviso)" th:if="${aviso}" class="aviso" role="status" th:text="${aviso}">
+    Você usou Pagar a pizza e subiu para o nível 1.
+</p>
 
 <!--
   Oponentes sentados em volta da mesa, virados para o centro, com as cartas de costas.
