@@ -43,6 +43,7 @@ Regras:
 - Uma funcionalidade usa outra pelo service (ex.: `FugaService` → `RacaService`), nunca pelo repository dela.
 - Controller não tem regra de jogo. Model não vai direto para a view: converter com o DtoMapper.
 - Transação (`@Transactional`) fica no service.
+- Partida em andamento fica em memória (`partida/repository/PartidaRepository`, um mapa), não no banco: ainda não está decidido se o jogo vai usar o banco. Reiniciar a aplicação apaga as partidas.
 - Service lança exceção do `exception/` da funcionalidade; quem trata é o `GlobalExceptionHandler`. Nada de try/catch no controller.
 - Templates em `src/main/resources/templates/`, CSS/JS/imagens em `src/main/resources/static/`.
 - Mesa compartilhada: o que é igual em todo modo de jogo (com a máquina e com a galera) fica em `templates/mesa/mesa.html` (fragmentos), `static/css/mesa/` e `static/js/mesa/`. A tela do modo só monta a página com `th:replace` e guarda o que é só dela. O modo com a máquina serve para achar os bugs antes do multiplayer: mecânica nova nasce na mesa, não na tela do modo.
@@ -51,7 +52,7 @@ Regras:
 
 - Fonte: o texto das cartas em `static/img/cartas/`. O que não está na carta é regra geral: perguntar antes de assumir.
 - `static/img/` está no `.gitignore`: o texto da habilidade vai no Javadoc da classe da regra.
-- Regra que varia por tipo (raça, depois classe) usa Strategy: interface com a regra padrão nos métodos `default`, um `@Component` por tipo sobrescrevendo só o que muda, e um service que escolhe. A aplicação não sobe se faltar regra para algum tipo.
+- Regra que varia por tipo (raça, carta, depois classe) usa Strategy: interface com a regra padrão nos métodos `default`, um `@Component` por tipo sobrescrevendo só o que muda, e um service que escolhe. A aplicação não sobe se faltar regra para algum tipo. Carta com o mesmo texto de outra pode dividir a regra (a regra lista as cartas dela).
 - Números das regras básicas (limite da mão, mínimo para fugir...) ficam em `jogo/service/RegrasBasicas`, nunca soltos no código.
 - Sorte sempre pelo `Dado` ou pelo `Embaralhador` injetados (`jogo/service/`), nunca `Random` direto (o teste fixa o valor; a propriedade `jogo.semente` fixa o embaralhamento).
 
