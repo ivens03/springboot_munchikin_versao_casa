@@ -108,7 +108,10 @@
     async function enviar(ordem) {
         const corpo = new URLSearchParams();
         ordem.forEach(posicao => corpo.append('ordem', posicao));
+        // mao--enviando: quem recarrega a mesa (ex.: bots_jogam.js) espera a ordem chegar
+        mao.classList.add('mao--enviando');
         const resposta = await fetch(mao.dataset.ordenar, {method: 'POST', body: corpo}).catch(() => null);
+        mao.classList.remove('mao--enviando');
         if (!resposta?.ok) {
             location.reload();
         }

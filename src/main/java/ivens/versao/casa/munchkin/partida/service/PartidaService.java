@@ -1,5 +1,6 @@
 package ivens.versao.casa.munchkin.partida.service;
 
+import ivens.versao.casa.munchkin.bot.service.BotService;
 import ivens.versao.casa.munchkin.carta.model.Carta;
 import ivens.versao.casa.munchkin.carta.model.OpcaoDeNivel;
 import ivens.versao.casa.munchkin.carta.service.BaralhoService;
@@ -9,6 +10,7 @@ import ivens.versao.casa.munchkin.carta.service.nivel.SubaDeNivelService;
 import ivens.versao.casa.munchkin.carta.service.nivel.UsoDeCarta;
 import ivens.versao.casa.munchkin.jogo.model.TipoDeVitoria;
 import ivens.versao.casa.munchkin.jogo.model.Vitoria;
+import ivens.versao.casa.munchkin.jogo.service.Embaralhador;
 import ivens.versao.casa.munchkin.jogo.service.VitoriaService;
 import ivens.versao.casa.munchkin.munchkin.model.Munchkin;
 import ivens.versao.casa.munchkin.munchkin.service.MunchkinService;
@@ -29,6 +31,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.IntStream;
 
@@ -49,6 +52,8 @@ public class PartidaService {
     private final BaralhoService baralhoService;
     private final VitoriaService vitoriaService;
     private final SubaDeNivelService subaDeNivelService;
+    private final BotService botService;
+    private final Embaralhador embaralhador;
 
     /** Mesa com o jogador e os bots, já com as mãos distribuídas, na rodada de preparação. */
     public Partida criarComMaquina(int bots, TipoDeVitoria tipoDeVitoria, Integer nivelDeVitoria) {
@@ -145,6 +150,33 @@ public class PartidaService {
             escolhido = oponentes.get(alvo);
         }
         return aplicarCartaDeNivel(partida, jogador, posicao, opcao, escolhido);
+    }
+
+    /**
+     * Com a máquina, na preparação: um bot sorteado, dos que têm carta de nível para usar, pode usar uma
+     * (o BotService decide qual, a opção, de quem roubar, e se guarda para depois).
+     * Depois da preparação os bots ainda não jogam (falta o turno).
+     *
+     * @return a jogada, ou vazio quando nenhum bot jogou
+     */
+    public Optional<JogadaDoBot> jogadaDeBot(UUID id) {
+        Partida partida = buscar(id);
+        if (!emPreparacao(partida)) {
+            return Optional.empty();
+        }
+        Optional<JogadorDaPartida> quemJoga = embaralhador.embaralhar(partida.getOponentes()).stream()
+                .filter(bot -> botService.temCartaDeNivelParaUsar(bot.getMao(), situacaoDe(partida, bot)))
+                .findFirst();
+        return quemJoga.flatMap(bot -> botService.escolherCartaDeNivel(bot.getMao(), situacaoDe(partida, bot))
+                .map(jogada -> {
+                    JogadorDaPartida alvo = null;
+                    if (subaDeNivelService.precisaDeAlvo(bot.getMao().get(jogada.posicao()))) {
+                        List<JogadorDaPartida> outros = outros(partida, bot);
+                        alvo = outros.get(botService.escolherAlvo(niveis(outros)));
+                    }
+                    return new JogadaDoBot(partida.getOponentes().indexOf(bot),
+                            aplicarCartaDeNivel(partida, bot, jogada.posicao(), jogada.opcao(), alvo));
+                }));
     }
 
     /** Confere a carta pelo SubaDeNivelService, tira da mão, descarta e muda os níveis. */

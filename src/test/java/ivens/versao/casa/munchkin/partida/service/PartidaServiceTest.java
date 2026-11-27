@@ -1,5 +1,7 @@
 package ivens.versao.casa.munchkin.partida.service;
 
+import ivens.versao.casa.munchkin.bot.service.BotService;
+import ivens.versao.casa.munchkin.bot.service.JogadaDeNivel;
 import ivens.versao.casa.munchkin.carta.model.Carta;
 import ivens.versao.casa.munchkin.carta.model.TipoDeCarta;
 import ivens.versao.casa.munchkin.carta.exception.UsoDeCartaNaoPermitidoException;
@@ -57,9 +59,11 @@ class PartidaServiceTest {
     private final BaralhoService baralhoService = mock(BaralhoService.class);
     private final VitoriaService vitoriaService = mock(VitoriaService.class);
     private final SubaDeNivelService subaDeNivelService = mock(SubaDeNivelService.class);
+    private final BotService botService = mock(BotService.class);
+    private final Embaralhador embaralhador = mock(Embaralhador.class);
     private final PartidaRepository partidaRepository = new PartidaRepository();
     private final PartidaService partidaService = new PartidaService(partidaRepository, munchkinService, baralhoService,
-            vitoriaService, subaDeNivelService);
+            vitoriaService, subaDeNivelService, botService, embaralhador);
 
     private final Vitoria classica = new Vitoria(TipoDeVitoria.CLASSICA, 10);
     private final Munchkin jogador = new Munchkin("Jogador");
@@ -368,6 +372,89 @@ class PartidaServiceTest {
         assertThatThrownBy(() -> partidaService.reordenarMaoDoJogador(id, List.of(0)))
                 .isInstanceOf(PartidaNaoEncontradaException.class);
     }
+
+    // ---------- bots usando cartas de nível ----------
+
+    /** Bot 1 no nível 2 vê o jogador no 0 e o Bot 2 no -1. */
+    private final SituacaoDoJogador situacaoDoBot1 = new SituacaoDoJogador(2, List.of(0, -1), 10);
+    /** Bot 2 no nível -1 vê o jogador no 0 e o Bot 1 no 2. */
+    private final SituacaoDoJogador situacaoDoBot2 = new SituacaoDoJogador(-1, List.of(0, 2), 10);
+
+    /** O sorteio põe o Bot 2 antes do Bot 1. */
+    private Partida partidaComOBot2SorteadoPrimeiro() {
+        Partida partida = partidaComNiveis();
+        when(embaralhador.<JogadorDaPartida>embaralhar(anyList()))
+                .thenReturn(List.copyOf(partida.getOponentes()).reversed());
+        return partida;
+    }
+
+    @Test
+    void jogaOBotSorteadoQueTemCartaParaUsar() {
+        Partida partida = partidaComOBot2SorteadoPrimeiro();
+        when(botService.temCartaDeNivelParaUsar(maoDoBot2, situacaoDoBot2)).thenReturn(false);
+        when(botService.temCartaDeNivelParaUsar(maoDoBot1, situacaoDoBot1)).thenReturn(true);
+        when(botService.escolherCartaDeNivel(maoDoBot1, situacaoDoBot1))
+                .thenReturn(Optional.of(new JogadaDeNivel(0, OpcaoDeNivel.SUBIR_1_NIVEL)));
+        when(subaDeNivelService.usar(carta("d"), OpcaoDeNivel.SUBIR_1_NIVEL, situacaoDoBot1)).thenReturn(EfeitoDeNivel.SUBIR_1);
+
+        JogadaDoBot jogada = partidaService.jogadaDeBot(partida.getId()).orElseThrow();
+
+        verify(munchkinService).mudarNivel(bot1, 1);
+        assertThat(jogada.oponente()).isZero();
+        JogadorDaPartida bot = partida.getOponentes().getFirst();
+        assertThat(jogada.jogada()).isEqualTo(new JogadaDeCarta(0, bot, carta("d"), null,
+                List.of(new MudancaDeNivel(bot, 2, 3))));
+        assertThat(partida.getOponentes().getFirst().getMao()).isEmpty();
+        assertThat(partida.getDescarte(TipoDeCarta.TESOURO)).containsExactly(carta("d"));
+    }
+
+    @Test
+    void botRoubaDeQuemOBotServiceEscolheEntreTodosOsOutros() {
+        Partida partida = partidaComOBot2SorteadoPrimeiro();
+        when(botService.temCartaDeNivelParaUsar(maoDoBot2, situacaoDoBot2)).thenReturn(true);
+        when(botService.escolherCartaDeNivel(maoDoBot2, situacaoDoBot2))
+                .thenReturn(Optional.of(new JogadaDeNivel(0, OpcaoDeNivel.ROUBAR_1_NIVEL)));
+        when(subaDeNivelService.precisaDeAlvo(carta("e"))).thenReturn(true);
+        when(botService.escolherAlvo(List.of(0, 2))).thenReturn(0); // o jogador da tela
+        when(subaDeNivelService.usar(carta("e"), OpcaoDeNivel.ROUBAR_1_NIVEL, situacaoDoBot2))
+                .thenReturn(new EfeitoDeNivel(1, 1, false));
+
+        JogadaDoBot jogada = partidaService.jogadaDeBot(partida.getId()).orElseThrow();
+
+        verify(munchkinService).mudarNivel(bot2, 1);
+        verify(munchkinService).mudarNivel(jogador, -1);
+        assertThat(jogada.oponente()).isEqualTo(1);
+        assertThat(jogada.jogada().alvo()).isSameAs(partida.getJogador());
+    }
+
+    @Test
+    void botQueGuardaACartaNaoJoga() {
+        Partida partida = partidaComOBot2SorteadoPrimeiro();
+        when(botService.temCartaDeNivelParaUsar(maoDoBot2, situacaoDoBot2)).thenReturn(true);
+        when(botService.escolherCartaDeNivel(maoDoBot2, situacaoDoBot2)).thenReturn(Optional.empty());
+
+        assertThat(partidaService.jogadaDeBot(partida.getId())).isEmpty();
+        assertThat(partida.getOponentes().get(1).getMao()).hasSize(1);
+        verify(munchkinService, never()).mudarNivel(any(), anyInt());
+    }
+
+    @Test
+    void semBotComCartaNinguemJoga() {
+        Partida partida = partidaComOBot2SorteadoPrimeiro();
+
+        assertThat(partidaService.jogadaDeBot(partida.getId())).isEmpty();
+        verify(botService, never()).escolherCartaDeNivel(any(), any());
+    }
+
+    @Test
+    void depoisDaPreparacaoOsBotsAindaNaoJogam() {
+        Partida partida = partidaComOBot2SorteadoPrimeiro();
+        partidaService.confirmarPronto(partida.getId());
+
+        assertThat(partidaService.jogadaDeBot(partida.getId())).isEmpty();
+        verifyNoInteractions(botService);
+    }
+
     private static Carta carta(String nome) {
         return new Carta(TipoDeCarta.TESOURO, "tesouro/" + nome + "_tesouro.jpg");
     }

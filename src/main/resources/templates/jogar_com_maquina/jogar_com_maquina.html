@@ -7,7 +7,9 @@
     <link rel="stylesheet" th:href="@{/css/mesa/mesa.css}">
 </head>
 <body>
-<main class="mesa" th:attr="data-distribuindo=${distribuindo}">
+<!--/* data-bots-jogam: só na preparação; o bots_jogam.js pergunta por ali se um bot usa carta */-->
+<main class="mesa" th:attr="data-distribuindo=${distribuindo},
+        data-bots-jogam=${rodada.preparacao} ? @{/jogar-com-maquina/{id}/bots/jogar(id=${partidaId})}">
     <section th:replace="~{mesa/mesa :: pilhas}"></section>
     <p th:replace="~{mesa/mesa :: vitoria(${vitoria})}"></p>
     <section th:replace="~{mesa/mesa :: rodada(${rodada},
@@ -29,5 +31,6 @@
 <script th:src="@{/js/mesa/usar_carta.js}"></script>
 <script th:src="@{/js/mesa/provocar.js}"></script>
 <script th:src="@{/js/jogar_com_maquina/bots_provocam.js}"></script>
+<script th:src="@{/js/jogar_com_maquina/bots_jogam.js}"></script>
 </body>
 </html>

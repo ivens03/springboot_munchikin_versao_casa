@@ -11,13 +11,17 @@ import ivens.versao.casa.munchkin.munchkin.dto.OponenteDto;
 import ivens.versao.casa.munchkin.munchkin.model.Munchkin;
 import ivens.versao.casa.munchkin.munchkin.service.MunchkinService;
 import ivens.versao.casa.munchkin.partida.dto.JogadaDeCartaDtoMapper;
+import ivens.versao.casa.munchkin.partida.dto.JogadaDoBotDto;
 import ivens.versao.casa.munchkin.partida.dto.RodadaDtoMapper;
 import ivens.versao.casa.munchkin.partida.model.Partida;
 import ivens.versao.casa.munchkin.partida.service.PartidaService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.web.servlet.support.RequestContextUtils;
 
 import java.util.List;
 import java.util.UUID;
@@ -113,6 +118,25 @@ public class JogarComMaquinaWeb {
         redirecionamento.addFlashAttribute("aviso",
                 jogadaDeCartaDtoMapper.aviso(partidaService.usarCartaDeNivel(id, posicao, opcao, alvo)));
         return MESA + id;
+    }
+
+    /**
+     * Com a máquina, na preparação: o bots_jogam.js chama de tempos em tempos e um bot pode usar uma carta.
+     * Sem jogada, 204. Com jogada, o aviso fica guardado (flash) para a mesa, que o JS recarrega depois de mostrar
+     * o bot puxando a carta; a resposta diz qual oponente jogou.
+     */
+    @PostMapping("/{id}/bots/jogar")
+    public ResponseEntity<JogadaDoBotDto> botsJogam(@PathVariable UUID id, HttpServletRequest requisicao,
+                                                    HttpServletResponse resposta) {
+        return partidaService.jogadaDeBot(id)
+                .map(jogada -> {
+                    RequestContextUtils.getOutputFlashMap(requisicao)
+                            .put("aviso", jogadaDeCartaDtoMapper.aviso(jogada.jogada()));
+                    RequestContextUtils.saveOutputFlashMap(
+                            requisicao.getContextPath() + "/jogar-com-maquina/" + id, requisicao, resposta);
+                    return ResponseEntity.ok(new JogadaDoBotDto(jogada.oponente()));
+                })
+                .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
     /** Nova ordem da mão, mandada pelo organizar_mao.js quando o jogador solta uma carta arrastada. */

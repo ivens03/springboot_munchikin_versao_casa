@@ -35,6 +35,7 @@ import ivens.versao.casa.munchkin.partida.exception.PartidaNaoEncontradaExceptio
 import ivens.versao.casa.munchkin.partida.model.JogadorDaPartida;
 import ivens.versao.casa.munchkin.partida.model.Partida;
 import ivens.versao.casa.munchkin.partida.service.PartidaService;
+import ivens.versao.casa.munchkin.partida.service.JogadaDoBot;
 import ivens.versao.casa.munchkin.partida.model.EfeitoDaJogada.MudancaDeNivel;
 import ivens.versao.casa.munchkin.partida.model.JogadaDeCarta;
 import org.junit.jupiter.api.Test;
@@ -199,7 +200,40 @@ class JogarComMaquinaWebTest {
                 .andExpect(model().attribute("usos", usosDto))
                 .andExpect(model().attribute("opcoesDeUso", opcoesDto))
                 .andExpect(model().attribute("oponentes", List.of(new OponenteDto(botDto, maoDoBotDto))))
-                .andExpect(model().attributeDoesNotExist("distribuindo"));
+                .andExpect(model().attributeDoesNotExist("distribuindo"))
+                .andExpect(content().string(containsString(
+                        "data-bots-jogam=\"/jogar-com-maquina/" + partida.getId() + "/bots/jogar\"")));
+    }
+
+    @Test
+    void depoisDaPreparacaoOsBotsNaoJogam() throws Exception {
+        mesaDepoisDaPreparacao();
+
+        mockMvc.perform(get(urlDaMesa))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("data-bots-jogam"))));
+    }
+
+    @Test
+    void botQueJogaDeixaOAvisoParaAMesaEDizQuemFoi() throws Exception {
+        JogadaDeCarta resultado = new JogadaDeCarta(0, partida.getOponentes().getFirst(), maoDoBot.getFirst(), null,
+                List.of(new MudancaDeNivel(partida.getOponentes().getFirst(), 0, 1)));
+        when(partidaService.jogadaDeBot(partida.getId())).thenReturn(Optional.of(new JogadaDoBot(0, resultado)));
+        when(jogadaDeCartaDtoMapper.aviso(resultado)).thenReturn("Bot 1 usou Pagar a pizza e subiu para o nível 1.");
+
+        mockMvc.perform(post(urlDaMesa + "/bots/jogar"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.oponente").value(0))
+                .andExpect(flash().attribute("aviso", "Bot 1 usou Pagar a pizza e subiu para o nível 1."));
+    }
+
+    @Test
+    void semJogadaDeBotNaoTemConteudo() throws Exception {
+        when(partidaService.jogadaDeBot(partida.getId())).thenReturn(Optional.empty());
+
+        mockMvc.perform(post(urlDaMesa + "/bots/jogar"))
+                .andExpect(status().isNoContent())
+                .andExpect(flash().attributeCount(0));
     }
 
     @Test
