@@ -24,7 +24,13 @@ import ivens.versao.casa.munchkin.munchkin.dto.OponenteDto;
 import ivens.versao.casa.munchkin.munchkin.exception.VendaDeOuroNaoPermitidaException;
 import ivens.versao.casa.munchkin.munchkin.model.Munchkin;
 import ivens.versao.casa.munchkin.munchkin.service.MunchkinService;
+import ivens.versao.casa.munchkin.partida.dto.DescarteDto;
+import ivens.versao.casa.munchkin.partida.dto.DescarteDtoMapper;
 import ivens.versao.casa.munchkin.partida.dto.JogadaDeCartaDtoMapper;
+import ivens.versao.casa.munchkin.partida.dto.JogadaNaMesaDto;
+import ivens.versao.casa.munchkin.partida.dto.JogadaNaMesaDto.EfeitoNaMesaDto;
+import ivens.versao.casa.munchkin.partida.dto.ParticipanteDto;
+import ivens.versao.casa.munchkin.partida.dto.ParticipanteDto.SeloDto;
 import ivens.versao.casa.munchkin.partida.dto.JogadaDto;
 import ivens.versao.casa.munchkin.partida.dto.RodadaDto;
 import ivens.versao.casa.munchkin.partida.dto.RodadaDtoMapper;
@@ -39,6 +45,7 @@ import ivens.versao.casa.munchkin.partida.service.PartidaService;
 import ivens.versao.casa.munchkin.partida.service.JogadaDoBot;
 import ivens.versao.casa.munchkin.partida.model.EfeitoDaJogada.MudancaDeNivel;
 import ivens.versao.casa.munchkin.partida.model.JogadaDeCarta;
+import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -47,12 +54,17 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
@@ -97,6 +109,9 @@ class JogarComMaquinaWebTest {
 
     @MockitoBean
     private JogadaDeCartaDtoMapper jogadaDeCartaDtoMapper;
+
+    @MockitoBean
+    private DescarteDtoMapper descarteDtoMapper;
 
     private final Vitoria classica = new Vitoria(TipoDeVitoria.CLASSICA, 10);
     private final Munchkin jogador = new Munchkin("Jogador");
@@ -216,16 +231,17 @@ class JogarComMaquinaWebTest {
     }
 
     @Test
-    void botQueJogaDeixaOAvisoParaAMesaEDizQuemFoi() throws Exception {
+    void botQueJogaDeixaAJogadaParaAMesaEDizQuemFoi() throws Exception {
         JogadaDeCarta resultado = new JogadaDeCarta(0, partida.getOponentes().getFirst(), maoDoBot.getFirst(), null,
                 List.of(new MudancaDeNivel(partida.getOponentes().getFirst(), 0, 1)));
         when(partidaService.jogadaDeBot(partida.getId())).thenReturn(Optional.of(new JogadaDoBot(0, resultado)));
-        when(jogadaDeCartaDtoMapper.aviso(resultado)).thenReturn("Bot 1 usou Pagar a pizza e subiu para o nível 1.");
+        when(partidaService.buscar(partida.getId())).thenReturn(partida);
+        when(jogadaDeCartaDtoMapper.naMesa(resultado, partida.getOponentes())).thenReturn(jogadaDoBot1());
 
         mockMvc.perform(post(urlDaMesa + "/bots/jogar"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.oponente").value(0))
-                .andExpect(flash().attribute("aviso", "Bot 1 usou Pagar a pizza e subiu para o nível 1."));
+                .andExpect(flash().attribute("jogada", jogadaDoBot1()));
     }
 
     @Test
@@ -338,21 +354,26 @@ class JogarComMaquinaWebTest {
     }
 
     @Test
-    void usarCartaVoltaParaAMesaComOAviso() throws Exception {
+    void usarCartaVoltaParaAMesaComAJogada() throws Exception {
         JogadaDeCarta resultado = new JogadaDeCarta(0, partida.getJogador(), maoDoJogador.getFirst(),
                 partida.getOponentes().getFirst(), List.of());
+        JogadaNaMesaDto naMesa = new JogadaNaMesaDto(null, "tesouro", "Roubar 1 nivel", "/img/x.jpg",
+                "Você usou Roubar 1 nivel", List.of());
         when(partidaService.usarCartaDeNivel(partida.getId(), 0, OpcaoDeNivel.ROUBAR_1_NIVEL, 0)).thenReturn(resultado);
-        when(jogadaDeCartaDtoMapper.aviso(resultado)).thenReturn("Você usou Roubar 1 nivel");
+        when(partidaService.buscar(partida.getId())).thenReturn(partida);
+        when(jogadaDeCartaDtoMapper.naMesa(resultado, partida.getOponentes())).thenReturn(naMesa);
 
         mockMvc.perform(post(urlDaMesa + "/usar-carta").param("posicao", "0").param("opcao", "ROUBAR_1_NIVEL")
                         .param("alvo", "0"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl(urlDaMesa))
-                .andExpect(flash().attribute("aviso", "Você usou Roubar 1 nivel"));
+                .andExpect(flash().attribute("jogada", naMesa));
     }
 
     @Test
     void usarCartaSemAlvoNaoMandaAlvo() throws Exception {
+        when(partidaService.buscar(partida.getId())).thenReturn(partida);
+
         mockMvc.perform(post(urlDaMesa + "/usar-carta").param("posicao", "2").param("opcao", "SUBIR_1_NIVEL"))
                 .andExpect(status().is3xxRedirection());
 
@@ -360,34 +381,91 @@ class JogarComMaquinaWebTest {
     }
 
     @Test
-    void avisoDaCartaUsadaApareceNaMesa() throws Exception {
+    void cartaJogadaApareceNaMesaComQuemJogouOEfeitoEODescarte() throws Exception {
         mesaDepoisDaPreparacao();
 
-        mockMvc.perform(get(urlDaMesa).flashAttr("aviso", "Você usou Pagar a pizza e subiu para o nível 1."))
+        mockMvc.perform(get(urlDaMesa).flashAttr("jogada", jogadaDoBot1()))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Você usou Pagar a pizza e subiu para o nível 1.")));
+                .andExpect(content().string(containsString(
+                        "class=\"jogada\" role=\"status\" data-oponente=\"0\" data-pilha=\"tesouro\"")))
+                .andExpect(content().string(containsString("Bot 1 usou Pagar a pizza: subiu do nível 0 para o 1.")))
+                .andExpect(content().string(comEspacos(
+                        "class=\"jogada__efeito jogada__efeito--sobe\" data-oponente=\"0\">Nível 0 → 1</li>")));
+    }
+
+    @Test
+    void cartaDoJogadorDaTelaNaoTemOponente() throws Exception {
+        mesaDepoisDaPreparacao();
+
+        mockMvc.perform(get(urlDaMesa).flashAttr("jogada", new JogadaNaMesaDto(null, "tesouro", "Pagar a pizza",
+                        "/img/x.jpg", "Você usou Pagar a pizza: subiu do nível 0 para o 1.",
+                        List.of(new EfeitoNaMesaDto(null, "sobe", "Nível 0 → 1")))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("class=\"jogada\" role=\"status\" data-pilha=\"tesouro\"")))
+                .andExpect(content().string(comEspacos("class=\"jogada__efeito jogada__efeito--sobe\">Nível 0 → 1</li>")));
+    }
+
+    @Test
+    void semJogadaNaoTemCartaNoCentro() throws Exception {
+        mesaDepoisDaPreparacao();
+
+        mockMvc.perform(get(urlDaMesa))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("class=\"jogada\""))));
+    }
+
+    @Test
+    void descartesMostramOTopoEAJanelaComTodasMasVazioNaoAbre() throws Exception {
+        mesaDepoisDaPreparacao();
+        CartaDto pizza = new CartaDto("tesouro", "Pagar a pizza", "/img/cartas/tesouro/pizza.jpg", "/img/v.jpg");
+        CartaDto espada = new CartaDto("tesouro", "Espada", "/img/cartas/tesouro/espada.jpg", "/img/v.jpg");
+        when(descarteDtoMapper.paraDto(partida)).thenReturn(List.of(new DescarteDto("dungeon", "Dungeon", List.of()),
+                new DescarteDto("tesouro", "Tesouro", List.of(pizza, espada))));
+
+        mockMvc.perform(get(urlDaMesa))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("descartes", hasSize(2)))
+                .andExpect(content().string(containsString("aria-label=\"Descarte de Dungeon: 0 cartas\" disabled")))
+                .andExpect(content().string(comEspacos("<img class=\"descarte__topo\" src=\"/img/cartas/tesouro/pizza.jpg\"")))
+                .andExpect(content().string(comEspacos(
+                        "<img class=\"descarte__anterior\" src=\"/img/cartas/tesouro/espada.jpg\"")))
+                .andExpect(content().string(containsString("Descarte de Tesouro · 2 cartas")))
+                .andExpect(content().string(not(containsString("Descarte de Dungeon ·"))));
     }
 
     @Test
     void historicoApareceNaMesaComAUltimaPrimeiro() throws Exception {
         mesaDepoisDaPreparacao();
         List<JogadaDto> historico = List.of(
-                new JogadaDto(1, "Bot 1", "Bot 1 usou Pagar a pizza: subiu do nível 1 para o 2.", "Pagar a pizza",
-                        "/img/cartas/tesouro/3_suba_de_nivel/pagar_a_pizza_tesouro.jpg"),
+                new JogadaDto(1, "Bot 1", "Bot 1 usou Roubar 1 nivel em você: subiu do nível 1 para o 2 e você desceu do nível 0 para o -1.",
+                        "Roubar 1 nivel", "/img/cartas/tesouro/3_suba_de_nivel/roubar_1_nivel_tesouro.jpg",
+                        new ParticipanteDto("Bot 1", "/img/cartas/masmorra/6_classes/mago_masmorra.jpg",
+                                List.of(new SeloDto("sobe", "Nível 1 → 2"))),
+                        List.of(new ParticipanteDto("Você", null, List.of(new SeloDto("desce", "Nível 0 → -1"))))),
                 new JogadaDto(0, "Você", "Você usou Pagar a pizza: subiu do nível 0 para o 1.", "Pagar a pizza",
-                        "/img/cartas/tesouro/3_suba_de_nivel/pagar_a_pizza_tesouro.jpg"));
+                        "/img/cartas/tesouro/3_suba_de_nivel/pagar_a_pizza_tesouro.jpg",
+                        new ParticipanteDto("Você", null, List.of(new SeloDto("sobe", "Nível 0 → 1"))), List.of()));
         when(jogadaDeCartaDtoMapper.historico(partida.getHistorico())).thenReturn(historico);
 
         String pagina = mockMvc.perform(get(urlDaMesa))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("historico", historico))
                 .andExpect(content().string(containsString("Histórico completo · 2 jogadas")))
-                .andExpect(content().string(containsString("Bot 1 usou Pagar a pizza: subiu do nível 1 para o 2.")))
+                .andExpect(content().string(containsString("Bot 1 usou Roubar 1 nivel em você")))
+                // em imagens: retrato de quem jogou, a carta, a seta e quem foi afetado, com os selos
+                .andExpect(content().string(comEspacos(
+                        "class=\"participante__retrato\" src=\"/img/cartas/masmorra/6_classes/mago_masmorra.jpg\"")))
+                .andExpect(content().string(comEspacos("class=\"selo selo--desce\">Nível 0 → -1</li>")))
+                .andExpect(content().string(containsString("class=\"lance__seta\"")))
+                // sem retrato, a inicial
+                .andExpect(content().string(comEspacos("class=\"participante__retrato participante__retrato--vazio\">V</span>")))
                 .andExpect(content().string(not(containsString("Nenhuma carta jogada ainda."))))
                 .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
 
         // fileira: 2 quadrados com jogada (a última primeiro) e 8 vagas antes do "Tudo"
         assertThat(org.springframework.util.StringUtils.countOccurrencesOf(pagina, "class=\"historico__jogada\"")).isEqualTo(2);
+        // a seta só na jogada com afetado: uma no quadrado e outra no histórico completo
+        assertThat(org.springframework.util.StringUtils.countOccurrencesOf(pagina, "class=\"lance__seta\"")).isEqualTo(2);
         assertThat(org.springframework.util.StringUtils.countOccurrencesOf(pagina, "class=\"historico__vaga\"")).isEqualTo(8);
         assertThat(pagina.indexOf("Rodada 1: Bot 1 usou")).isLessThan(pagina.indexOf("Rodada 0: Você usou"));
     }
@@ -528,6 +606,18 @@ class JogarComMaquinaWebTest {
                 .andExpect(status().isBadRequest());
 
         verifyNoInteractions(partidaService);
+    }
+
+    /** O HTML contém o trecho, com qualquer quebra de linha ou recuo entre os atributos (o template quebra linhas). */
+    private static Matcher<String> comEspacos(String trecho) {
+        String regex = Arrays.stream(trecho.split(" ")).map(Pattern::quote).collect(Collectors.joining("\\s+"));
+        return matchesPattern("(?s).*" + regex + ".*");
+    }
+
+    private static JogadaNaMesaDto jogadaDoBot1() {
+        return new JogadaNaMesaDto(0, "tesouro", "Pagar a pizza", "/img/cartas/tesouro/pizza.jpg",
+                "Bot 1 usou Pagar a pizza: subiu do nível 0 para o 1.",
+                List.of(new EfeitoNaMesaDto(0, "sobe", "Nível 0 → 1")));
     }
 
     private static MunchkinDto munchkinDto(String nome) {

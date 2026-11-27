@@ -3,8 +3,8 @@
  * Quem decide se joga, qual carta e de quem rouba é o servidor (BotService, com o Dado); daqui só sai o ritmo
  * (Math.random no intervalo, como no bots_provocam.js). Quando um bot joga, ele puxa uma carta para o centro
  * (mesaProvocar) e a mesa recarrega com o aviso e os níveis novos.
- * Espera o jogador: não pergunta nem recarrega enquanto ele arrasta carta, está com a janela de uso, o histórico ou
- * o painel de teste aberto, ou a ordem da mão ainda está indo para o servidor. Sem data-bots-jogam (fora da preparação),
+ * Espera a mesa: não pergunta nem recarrega enquanto a última carta jogada ainda está na mesa (jogada_na_mesa.js),
+ * o jogador arrasta carta, está com a janela de uso, um descarte, o histórico ou o painel de teste aberto, ou a ordem da mão ainda está indo para o servidor. Sem data-bots-jogam (fora da preparação),
  * não faz nada.
  */
 (() => {
@@ -21,7 +21,7 @@
     const sortear = quantos => Math.floor(Math.random() * quantos);
     const esperar = ms => new Promise(pronto => setTimeout(pronto, ms));
     const ocupado = () => document.hidden || mesa.classList.contains('mesa--comprando')
-        || document.querySelector('.carta--arrastando, .carta--solta, .mao--enviando, dialog[open], details.teste[open], '
+        || document.querySelector('.jogada, .carta--arrastando, .carta--solta, .mao--enviando, dialog[open], details.teste[open], '
             + '.historico__tudo:hover, .historico__tudo:focus-visible');
 
     async function quandoLivre() {

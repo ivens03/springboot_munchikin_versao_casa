@@ -16,6 +16,7 @@ import java.util.List;
 /**
  * Catálogo das cartas: cada imagem em static/img/cartas/<tipo>/ é uma carta do baralho
  * (as cópias _2, _3... são cartas repetidas). As cartas em branco ficam de fora.
+ * Tipo sem pasta (ex.: Dungeon, que ainda não tem cartas) não tem carta nenhuma.
  */
 @Repository
 public class CartaRepository {
@@ -31,6 +32,9 @@ public class CartaRepository {
 
     public List<Carta> listar(TipoDeCarta tipo) {
         try {
+            if (!resolver.getResource(pastaDasCartas + tipo.getPasta() + "/").exists()) {
+                return List.of();
+            }
             String raiz = resolver.getResource(pastaDasCartas).getURL().toString();
             Resource[] imagens = resolver.getResources(pastaDasCartas + tipo.getPasta() + "/**/*.jpg");
             return Arrays.stream(imagens)

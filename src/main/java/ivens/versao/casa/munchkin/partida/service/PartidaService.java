@@ -72,7 +72,22 @@ public class PartidaService {
                     return jogador;
                 })
                 .toList();
+        sortearRetratos(jogadores);
         return partidaRepository.salvar(new Partida(UUID.randomUUID(), vitoria, jogadores));
+    }
+
+    /**
+     * Cada jogador ganha o desenho de uma carta de personagem como retrato, sem repetir enquanto houver
+     * (com mais jogadores que retratos, recomeça a lista). Depois das mãos, para não mudar o embaralhamento delas.
+     */
+    private void sortearRetratos(List<JogadorDaPartida> jogadores) {
+        List<Carta> retratos = embaralhador.embaralhar(baralhoService.cartasDePersonagem());
+        if (retratos.isEmpty()) {
+            return;
+        }
+        for (int lugar = 0; lugar < jogadores.size(); lugar++) {
+            jogadores.get(lugar).setRetrato(retratos.get(lugar % retratos.size()));
+        }
     }
 
     public Partida buscar(UUID id) {
@@ -188,12 +203,13 @@ public class PartidaService {
 
         List<EfeitoDaJogada> efeitos = new ArrayList<>();
         mao.remove(posicao);
-        partida.descartar(carta);
         if (efeito.descartaAMao()) {
             efeitos.add(new MaoDescartada(jogador, mao.size()));
             mao.forEach(partida::descartar);
             mao.clear();
         }
+        // a carta jogada vai por último: fica no topo do descarte (é ela que a mesa mostra indo para lá)
+        partida.descartar(carta);
         efeitos.add(mudarNivel(jogador, efeito.niveisDoJogador()));
         if (alvo != null) {
             efeitos.add(mudarNivel(alvo, -efeito.niveisQueOAlvoPerde()));

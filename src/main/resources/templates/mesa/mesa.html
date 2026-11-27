@@ -8,6 +8,9 @@
     /js/mesa/organizar_mao.js  → arrastar uma carta no leque muda a ordem da mão; arrastar para cima, na mesa, usa a carta
     /js/mesa/usar_carta.js     → joga a carta solta na mesa ou abre a janela de uso (fragmento usoDeCarta)
     /js/mesa/provocar.js       → mesaProvocar(oponente, carta): o inimigo puxa uma carta para o centro e recolhe
+    /js/mesa/jogada_na_mesa.js → carta jogada: sai de quem jogou, fica no centro com o efeito e vai para o descarte
+    /js/mesa/descartes.js      → clicar numa pilha de descarte abre a janela com as cartas dela; clicar numa carta
+                                 da janela põe ela em foco, grande, para ler
 -->
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
 <body>
@@ -96,8 +99,10 @@
 <!--
   Histórico das cartas jogadas, numa coluna no canto de baixo, à esquerda: as últimas 10 jogadas, a última em cima
   (vaga sem jogada fica tracejada), e no 11º quadrado, embaixo, o histórico completo.
-  Mouse (ou foco) num quadrado mostra o que aquela jogada fez; parado no 11º, o histórico completo abre quase em
-  tela cheia e fecha quando o mouse sai dele. Enquanto aberto, a mesa não recarrega (bots_jogam.js).
+  Como no Hearthstone, a jogada se vê em imagens (fragmento lance): o retrato de quem jogou → a carta → o retrato de
+  quem foi afetado, cada um com o selo do que mudou ("Nível 0 → 1"). O texto vai só para o leitor de tela.
+  Mouse (ou foco) num quadrado mostra a jogada ao lado; parado no 11º, o histórico completo abre quase em tela cheia
+  e fecha quando o mouse sai dele. Enquanto aberto, a mesa não recarrega (bots_jogam.js).
   jogadas: todas, com a última primeiro (JogadaDeCartaDtoMapper.historico).
 -->
 <section th:fragment="historico(jogadas)" class="historico" aria-label="Histórico das cartas jogadas">
@@ -107,10 +112,10 @@
                 tabindex="0" th:aria-label="|Rodada ${jogada.rodada}: ${jogada.texto}|">
                 <img class="historico__carta" th:src="@{${jogada.imagem}}" alt="" draggable="false">
                 <span class="historico__quem" th:text="${jogada.quem}">Bot 1</span>
-                <span class="historico__detalhe">
+                <div class="historico__detalhe" aria-hidden="true">
                     <span class="historico__rodada" th:text="|Rodada ${jogada.rodada}|">Rodada 0</span>
-                    <span th:text="${jogada.texto}">Bot 1 usou Pagar a pizza: subiu do nível 0 para o 1.</span>
-                </span>
+                    <div th:replace="~{mesa/mesa :: lance(${jogada})}"></div>
+                </div>
             </li>
             <li th:unless="${vaga < #lists.size(jogadas)}" class="historico__vaga" aria-hidden="true"></li>
         </th:block>
@@ -124,18 +129,42 @@
                 <p th:if="${#lists.isEmpty(jogadas)}" class="historico__vazio">Nenhuma carta jogada ainda.</p>
                 <ol th:unless="${#lists.isEmpty(jogadas)}" class="historico__lista">
                     <li class="historico__linha" th:each="jogada : ${jogadas}">
-                        <img class="historico__miniatura" th:src="@{${jogada.imagem}}" th:alt="${jogada.carta}"
-                             loading="lazy" draggable="false">
-                        <p>
-                            <span class="historico__rodada" th:text="|Rodada ${jogada.rodada}|">Rodada 0</span>
-                            <span th:text="${jogada.texto}">Bot 1 usou Pagar a pizza: subiu do nível 0 para o 1.</span>
-                        </p>
+                        <span class="historico__rodada" th:text="|Rodada ${jogada.rodada}|">Rodada 0</span>
+                        <p class="so-leitor" th:text="${jogada.texto}">Bot 1 usou Pagar a pizza: subiu do nível 0 para o 1.</p>
+                        <div th:replace="~{mesa/mesa :: lance(${jogada})}"></div>
                     </li>
                 </ol>
             </div>
         </li>
     </ol>
 </section>
+
+<!--
+  Uma jogada em imagens: quem jogou → a carta → quem foi afetado (só a seta e os afetados quando houver).
+-->
+<div th:fragment="lance(jogada)" class="lance" aria-hidden="true">
+    <figure th:replace="~{mesa/mesa :: participante(${jogada.autor})}"></figure>
+    <img class="lance__carta" th:src="@{${jogada.imagem}}" th:alt="${jogada.carta}" loading="lazy" draggable="false">
+    <th:block th:unless="${#lists.isEmpty(jogada.afetados)}">
+        <span class="lance__seta">➜</span>
+        <th:block th:each="afetado : ${jogada.afetados}">
+            <figure th:replace="~{mesa/mesa :: participante(${afetado})}"></figure>
+        </th:block>
+    </th:block>
+</div>
+
+<!-- retrato (desenho da carta de personagem sorteada; sem ele, a inicial), nome e os selos do que mudou -->
+<figure th:fragment="participante(participante)" class="participante">
+    <img th:if="${participante.retrato}" class="participante__retrato" th:src="@{${participante.retrato}}" alt=""
+         loading="lazy" draggable="false">
+    <span th:unless="${participante.retrato}" class="participante__retrato participante__retrato--vazio"
+          th:text="${#strings.substring(participante.nome, 0, 1)}">B</span>
+    <figcaption class="participante__nome" th:text="${participante.nome}">Bot 1</figcaption>
+    <ul class="participante__selos">
+        <li th:each="selo : ${participante.selos}" class="selo" th:classappend="|selo--${selo.tipo}|"
+            th:text="${selo.texto}">Nível 0 → 1</li>
+    </ul>
+</figure>
 
 <!--
   Mãos do jogador segurando o leque com as cartas dele.
@@ -202,10 +231,68 @@
     </dialog>
 </th:block>
 
-<!-- o que a última carta usada fez; aparece logo depois de usar e some sozinho -->
-<p th:fragment="aviso(aviso)" th:if="${aviso}" class="aviso" role="status" th:text="${aviso}">
-    Você usou Pagar a pizza e subiu para o nível 1.
-</p>
+<!--
+  Pilhas de descarte, à vista de todos, embaixo do placar, montadas como as pilhas de compra: Dungeon em pé, ocupando
+  as duas linhas; ao lado, Masmorra em cima e Tesouro embaixo, deitadas. A carta do topo fica virada para cima e a
+  pilha engrossa com a quantidade (--cartas); vazia, a vaga fica tracejada.
+  Clicar abre a janela com todas, a do topo primeiro; clicar numa carta da janela põe ela em foco, grande, para ler
+  (descartes.js). Com a janela aberta a mesa não recarrega (bots_jogam.js).
+  A carta de baixo do topo (descarte__anterior) é o que aparece enquanto a carta jogada voa para lá (jogada_na_mesa.js).
+-->
+<section th:fragment="descartes(descartes)" class="descartes" aria-labelledby="titulo-dos-descartes">
+    <h2 id="titulo-dos-descartes" class="descartes__titulo">Descartes</h2>
+    <ol class="descartes__pilhas">
+        <li class="descarte" th:each="descarte : ${descartes}"
+            th:classappend="${descarte.pilha != 'dungeon'} ? 'descarte--deitado'"
+            th:attr="data-pilha=${descarte.pilha}" th:style="|--cartas: ${#lists.size(descarte.cartas)}|">
+            <button class="descarte__botao" type="button" th:disabled="${#lists.isEmpty(descarte.cartas)}"
+                    th:title="|Descarte de ${descarte.nome}|"
+                    th:aria-label="|Descarte de ${descarte.nome}: ${#lists.size(descarte.cartas)} cartas|">
+                <span class="descarte__vaga">
+                    <span class="descarte__nome" th:text="${descarte.nome}">Tesouro</span>
+                    <img th:if="${#lists.size(descarte.cartas) > 1}" class="descarte__anterior"
+                         th:src="@{${descarte.cartas[1].imagem}}" alt="" draggable="false">
+                    <img th:unless="${#lists.isEmpty(descarte.cartas)}" class="descarte__topo"
+                         th:src="@{${descarte.cartas[0].imagem}}" alt="" draggable="false">
+                </span>
+                <span class="descarte__total" th:text="${#lists.size(descarte.cartas)}">0</span>
+            </button>
+            <dialog th:unless="${#lists.isEmpty(descarte.cartas)}" class="descarte__janela"
+                    th:aria-label="|Descarte de ${descarte.nome}|">
+                <h3 class="descarte__titulo"
+                    th:text="|Descarte de ${descarte.nome} · ${#lists.size(descarte.cartas)} ${#lists.size(descarte.cartas) == 1 ? 'carta' : 'cartas'}|">
+                    Descarte de Tesouro · 1 carta</h3>
+                <ol class="descarte__cartas">
+                    <li th:each="carta : ${descarte.cartas}">
+                        <button class="descarte__carta" type="button" th:title="|Ler ${carta.nome}|">
+                            <img th:src="@{${carta.imagem}}" th:alt="${carta.nome}" loading="lazy" draggable="false">
+                        </button>
+                    </li>
+                </ol>
+                <button class="descarte__fechar" type="button">Fechar</button>
+                <div class="descarte__foco" hidden>
+                    <img class="descarte__foco-carta" src="data:," alt="">
+                </div>
+            </dialog>
+        </li>
+    </ol>
+</section>
+
+<!--
+  A carta que acabou de ser jogada (só logo depois da jogada: flash). O jogada_na_mesa.js faz ela sair de quem jogou
+  (data-oponente: posição do oponente; sem ele, o jogador da tela), parar no centro com o texto, mostrar cada efeito
+  em cima de quem mudou e voar para o descarte dela (data-pilha). Sem animação, fica parada uns segundos e some.
+-->
+<div th:fragment="jogadaNaMesa(jogada)" th:if="${jogada}" class="jogada" role="status"
+     th:attr="data-oponente=${jogada.oponente},data-pilha=${jogada.pilha}">
+    <img class="jogada__carta" th:src="@{${jogada.imagem}}" th:alt="${jogada.carta}" draggable="false">
+    <p class="jogada__texto" th:text="${jogada.texto}">Bot 1 usou Pagar a pizza: subiu do nível 0 para o 1.</p>
+    <ol class="jogada__efeitos" aria-hidden="true">
+        <li th:each="efeito : ${jogada.efeitos}" class="jogada__efeito"
+            th:classappend="|jogada__efeito--${efeito.tipo}|" th:attr="data-oponente=${efeito.oponente}"
+            th:text="${efeito.texto}">Nível 0 → 1</li>
+    </ol>
+</div>
 
 <!--
   TEMPORÁRIO, só para testar cenários (jogo.teste.cartas=true): botão no canto que abre o catálogo separado por

@@ -41,9 +41,24 @@ class BaralhoServiceTest {
     }
 
     @Test
+    void cartasDePersonagemSaoAsDeRacaEClasseUmaDeCada() {
+        when(cartaRepository.listar(TipoDeCarta.MASMORRA)).thenReturn(List.of(
+                new Carta(TipoDeCarta.MASMORRA, "masmorra/1_monstros/dragao_masmorra.jpg"),
+                new Carta(TipoDeCarta.MASMORRA, "masmorra/5_racas/elfo_2_masmorra.jpg"),
+                new Carta(TipoDeCarta.MASMORRA, "masmorra/5_racas/elfo_masmorra.jpg"),
+                new Carta(TipoDeCarta.MASMORRA, "masmorra/6_classes/mago_masmorra.jpg"),
+                new Carta(TipoDeCarta.MASMORRA, "masmorra/7_modificadores_de_raca_e_classe/super_munchkin_masmorra.jpg")));
+
+        assertThat(baralhoService.cartasDePersonagem()).containsExactly(
+                new Carta(TipoDeCarta.MASMORRA, "masmorra/5_racas/elfo_2_masmorra.jpg"),
+                new Carta(TipoDeCarta.MASMORRA, "masmorra/6_classes/mago_masmorra.jpg"));
+    }
+
+    @Test
     void catalogoTemMasmorraEDepoisTesouro() {
         when(cartaRepository.listar(TipoDeCarta.TESOURO)).thenReturn(baralho(TipoDeCarta.TESOURO, 2));
         when(cartaRepository.listar(TipoDeCarta.MASMORRA)).thenReturn(baralho(TipoDeCarta.MASMORRA, 1));
+        when(cartaRepository.listar(TipoDeCarta.DUNGEON)).thenReturn(List.of());
 
         assertThat(baralhoService.todasAsCartas()).containsExactly(new Carta(TipoDeCarta.MASMORRA, "masmorra/carta_1.jpg"),
                 new Carta(TipoDeCarta.TESOURO, "tesouro/carta_1.jpg"), new Carta(TipoDeCarta.TESOURO, "tesouro/carta_2.jpg"));
@@ -53,6 +68,7 @@ class BaralhoServiceTest {
     void buscaACartaDoCatalogoPelaImagem() {
         when(cartaRepository.listar(TipoDeCarta.TESOURO)).thenReturn(baralho(TipoDeCarta.TESOURO, 2));
         when(cartaRepository.listar(TipoDeCarta.MASMORRA)).thenReturn(baralho(TipoDeCarta.MASMORRA, 1));
+        when(cartaRepository.listar(TipoDeCarta.DUNGEON)).thenReturn(List.of());
 
         assertThat(baralhoService.buscar("tesouro/carta_2.jpg")).isEqualTo(new Carta(TipoDeCarta.TESOURO, "tesouro/carta_2.jpg"));
         assertThatThrownBy(() -> baralhoService.buscar("tesouro/nao_existe.jpg"))

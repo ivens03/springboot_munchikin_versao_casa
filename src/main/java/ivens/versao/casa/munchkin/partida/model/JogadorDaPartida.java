@@ -8,12 +8,19 @@ import lombok.Setter;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Um lugar na mesa: o Munchkin, as cartas na mão e se já deu OK para sair da preparação. */
+/**
+ * Um lugar na mesa: o Munchkin, as cartas na mão e se já deu OK para sair da preparação.
+ * O retrato é o desenho de uma carta de personagem (Raça ou Classe), sorteado no começo da partida: é o rosto dele
+ * no histórico. Pode faltar (sem cartas de personagem no catálogo).
+ */
 @Getter
 public class JogadorDaPartida {
 
     private final Munchkin munchkin;
     private final boolean bot;
+
+    @Setter
+    private Carta retrato;
 
     @Setter
     private List<Carta> mao;

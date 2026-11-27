@@ -10,9 +10,12 @@ import ivens.versao.casa.munchkin.munchkin.dto.MunchkinDtoMapper;
 import ivens.versao.casa.munchkin.munchkin.dto.OponenteDto;
 import ivens.versao.casa.munchkin.munchkin.model.Munchkin;
 import ivens.versao.casa.munchkin.munchkin.service.MunchkinService;
+import ivens.versao.casa.munchkin.partida.dto.DescarteDtoMapper;
 import ivens.versao.casa.munchkin.partida.dto.JogadaDeCartaDtoMapper;
 import ivens.versao.casa.munchkin.partida.dto.JogadaDoBotDto;
+import ivens.versao.casa.munchkin.partida.dto.JogadaNaMesaDto;
 import ivens.versao.casa.munchkin.partida.dto.RodadaDtoMapper;
+import ivens.versao.casa.munchkin.partida.model.JogadaDeCarta;
 import ivens.versao.casa.munchkin.partida.model.Partida;
 import ivens.versao.casa.munchkin.partida.service.PartidaService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -54,6 +57,7 @@ public class JogarComMaquinaWeb {
     private final RodadaDtoMapper rodadaDtoMapper;
     private final UsoDeCartaDtoMapper usoDeCartaDtoMapper;
     private final JogadaDeCartaDtoMapper jogadaDeCartaDtoMapper;
+    private final DescarteDtoMapper descarteDtoMapper;
 
     /**
      * Nova partida com o jogador e os bots escolhidos na home, e vai para a mesa dela (um F5 lá não distribui de novo).
@@ -82,6 +86,7 @@ public class JogarComMaquinaWeb {
         model.addAttribute("usos", usoDeCartaDtoMapper.paraDto(partidaService.usosDaMaoDoJogador(partida)));
         model.addAttribute("opcoesDeUso", usoDeCartaDtoMapper.todasAsOpcoes());
         model.addAttribute("historico", jogadaDeCartaDtoMapper.historico(partida.getHistorico()));
+        model.addAttribute("descartes", descarteDtoMapper.paraDto(partida));
         model.addAttribute("oponentes", partida.getOponentes().stream()
                 .map(oponente -> new OponenteDto(paraDto(oponente.getMunchkin()),
                         cartaDtoMapper.paraMaoFechada(oponente.getMao())))
@@ -111,19 +116,19 @@ public class JogarComMaquinaWeb {
 
     /**
      * Usa uma carta da mão (arrastada para a mesa e confirmada na janela de uso).
-     * "aviso" só vai neste redirecionamento: diz o que a carta fez e some.
+     * "jogada" só vai neste redirecionamento: a mesa mostra a carta no centro com o efeito e ela vai para o descarte.
      */
     @PostMapping("/{id}/usar-carta")
     public String usarCarta(@PathVariable UUID id, @RequestParam int posicao, @RequestParam OpcaoDeNivel opcao,
                             @RequestParam(required = false) Integer alvo, RedirectAttributes redirecionamento) {
-        redirecionamento.addFlashAttribute("aviso",
-                jogadaDeCartaDtoMapper.aviso(partidaService.usarCartaDeNivel(id, posicao, opcao, alvo)));
+        JogadaDeCarta jogada = partidaService.usarCartaDeNivel(id, posicao, opcao, alvo);
+        redirecionamento.addFlashAttribute("jogada", naMesa(id, jogada));
         return MESA + id;
     }
 
     /**
      * Com a máquina, na preparação: o bots_jogam.js chama de tempos em tempos e um bot pode usar uma carta.
-     * Sem jogada, 204. Com jogada, o aviso fica guardado (flash) para a mesa, que o JS recarrega depois de mostrar
+     * Sem jogada, 204. Com jogada, ela fica guardada (flash) para a mesa, que o JS recarrega depois de mostrar
      * o bot puxando a carta; a resposta diz qual oponente jogou.
      */
     @PostMapping("/{id}/bots/jogar")
@@ -132,7 +137,7 @@ public class JogarComMaquinaWeb {
         return partidaService.jogadaDeBot(id)
                 .map(jogada -> {
                     RequestContextUtils.getOutputFlashMap(requisicao)
-                            .put("aviso", jogadaDeCartaDtoMapper.aviso(jogada.jogada()));
+                            .put("jogada", naMesa(id, jogada.jogada()));
                     RequestContextUtils.saveOutputFlashMap(
                             requisicao.getContextPath() + "/jogar-com-maquina/" + id, requisicao, resposta);
                     return ResponseEntity.ok(new JogadaDoBotDto(jogada.oponente()));
@@ -145,6 +150,10 @@ public class JogarComMaquinaWeb {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void reordenarMao(@PathVariable UUID id, @RequestParam List<Integer> ordem) {
         partidaService.reordenarMaoDoJogador(id, ordem);
+    }
+
+    private JogadaNaMesaDto naMesa(UUID id, JogadaDeCarta jogada) {
+        return jogadaDeCartaDtoMapper.naMesa(jogada, partidaService.buscar(id).getOponentes());
     }
 
     private MunchkinDto paraDto(Munchkin munchkin) {

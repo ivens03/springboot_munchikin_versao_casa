@@ -16,10 +16,11 @@
             @{/jogar-com-maquina/{id}/pronto(id=${partidaId})}, ${comecou})}"></section>
     <ol th:replace="~{mesa/mesa :: oponentes(${oponentes})}"></ol>
     <section th:replace="~{mesa/mesa :: placar(${oponentes})}"></section>
+    <section th:replace="~{mesa/mesa :: descartes(${descartes})}"></section>
     <section th:replace="~{mesa/mesa :: historico(${historico})}"></section>
     <dl th:replace="~{mesa/mesa :: infoDoJogador(${jogador}, ${podeVenderOuro},
             @{/jogar-com-maquina/{id}/vender-ouro(id=${partidaId})})}"></dl>
-    <p th:replace="~{mesa/mesa :: aviso(${aviso})}"></p>
+    <div th:replace="~{mesa/mesa :: jogadaNaMesa(${jogada})}"></div>
     <th:block th:replace="~{mesa/mesa :: usoDeCarta(${oponentes}, ${opcoesDeUso},
             @{/jogar-com-maquina/{id}/usar-carta(id=${partidaId})})}"></th:block>
     <details th:replace="~{mesa/mesa :: cartasDeTeste(${cartasDeTeste},
@@ -31,6 +32,8 @@
 <script th:src="@{/js/mesa/organizar_mao.js}"></script>
 <script th:src="@{/js/mesa/usar_carta.js}"></script>
 <script th:src="@{/js/mesa/provocar.js}"></script>
+<script th:src="@{/js/mesa/descartes.js}"></script>
+<script th:src="@{/js/mesa/jogada_na_mesa.js}"></script>
 <script th:src="@{/js/jogar_com_maquina/bots_provocam.js}"></script>
 <script th:src="@{/js/jogar_com_maquina/bots_jogam.js}"></script>
 </body>

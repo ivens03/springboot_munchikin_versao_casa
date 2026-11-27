@@ -26,6 +26,11 @@ class CartaRepositoryTest {
     }
 
     @Test
+    void tipoSemPastaNaoTemCartas() {
+        assertThat(repository.listar(TipoDeCarta.DUNGEON)).isEmpty();
+    }
+
+    @Test
     void tesouroSoTemCartasDaPastaDeTesouro() {
         assertThat(repository.listar(TipoDeCarta.TESOURO))
                 .containsExactly(new Carta(TipoDeCarta.TESOURO, "tesouro/1_itens/espada_tesouro.jpg"));

@@ -237,11 +237,15 @@ html, body {
     transition: transform 0.3s ease, opacity 0.3s ease, visibility 0.3s;
 }
 
-/* com a mão vazia não tem leque para passar o mouse: as informações ficam sempre à mostra */
+/*
+ * com a mão vazia não tem leque para passar o mouse: as informações ficam sempre à mostra; também aparecem (sem a mão
+ * subir) enquanto uma carta jogada muda o jogador da tela (jogada_na_mesa.js)
+ */
 .mesa:has(.mao:hover) .jogador,
 .mesa:has(.carta--arrastando) .jogador,
 .mesa:has(.jogador__vender:hover) .jogador,
-.mesa:has(.mao--vazia) .jogador {
+.mesa:has(.mao--vazia) .jogador,
+.mesa--efeito-no-jogador .jogador {
     --descida-das-informacoes: 0%;
     opacity: 1;
     visibility: visible;
@@ -319,6 +323,368 @@ html, body {
 
 .placar__nivel {
     color: #d9a63a;
+}
+
+/* o nível desse inimigo acabou de mudar (jogada_na_mesa.js) */
+.placar__linha--mudou {
+    animation: piscar-placar 0.6s ease-in-out 3;
+}
+
+@keyframes piscar-placar {
+    50% {
+        color: #1d120a;
+        background: #d9a63a;
+    }
+}
+
+/*
+ * ---------- Pilhas de descarte, embaixo do placar, montadas como as pilhas de compra ----------
+ * Dungeon em pé, ocupando as duas linhas; ao lado, Masmorra em cima e Tesouro embaixo, deitadas.
+ * A carta do topo fica para cima e a pilha engrossa embaixo dela com a quantidade (--cartas, até 7 camadas);
+ * vazia, a vaga fica tracejada com o nome da pilha. Clicar abre a janela com todas as cartas (descartes.js).
+ */
+.descartes {
+    --altura-vaga: 10vh;
+    --largura-vaga: calc(var(--altura-vaga) * 657 / 1019);
+    position: absolute;
+    top: calc(46vh + 0.4rem);
+    right: 9vw;
+    z-index: 3;
+    display: grid;
+    justify-items: center;
+    gap: 0.3rem;
+    font-family: Georgia, "Times New Roman", serif;
+    color: #f6e3b4;
+}
+
+.descartes__titulo {
+    font-size: 0.8rem;
+    font-weight: normal;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #d9a63a;
+}
+
+.descartes__pilhas {
+    display: grid;
+    grid-template-columns: auto auto;
+    align-items: center;
+    gap: 0.55rem 0.9rem;
+    list-style: none;
+}
+
+.descarte:not(.descarte--deitado) {
+    grid-row: 1 / 3;
+}
+
+.descarte__botao {
+    position: relative;
+    display: block;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    cursor: pointer;
+}
+
+.descarte__botao:disabled {
+    cursor: default;
+}
+
+.descarte__vaga {
+    --espessura: calc(min(var(--cartas), 7) * 1.2px);
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: var(--largura-vaga);
+    height: var(--altura-vaga);
+    margin-bottom: var(--espessura);
+    border: 1px dashed rgba(246, 227, 180, 0.35);
+    border-radius: 0.35rem;
+}
+
+.descarte--deitado .descarte__vaga {
+    width: var(--altura-vaga);
+    height: var(--largura-vaga);
+}
+
+.descarte__vaga:has(img) {
+    border-color: transparent;
+}
+
+/* a espessura da pilha: as bordas das cartas de baixo aparecendo embaixo da do topo */
+.descarte__vaga:has(img)::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 calc(-1 * var(--espessura));
+    border-radius: 0.35rem;
+    background: repeating-linear-gradient(to bottom, #efe2c4 0 1px, #5b4a33 1px 2.4px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.6);
+}
+
+.descarte__anterior,
+.descarte__topo {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: var(--largura-vaga);
+    height: var(--altura-vaga);
+    translate: -50% -50%;
+    border-radius: 0.35rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.descarte--deitado .descarte__anterior,
+.descarte--deitado .descarte__topo {
+    rotate: 90deg;
+}
+
+/* vazia: só o nome da pilha na vaga tracejada */
+.descarte__nome {
+    font-size: 0.7rem;
+    color: rgba(246, 227, 180, 0.55);
+}
+
+.descarte__vaga:has(img) .descarte__nome {
+    display: none;
+}
+
+/* a carta jogada ainda está a caminho: aparece a de baixo (ou a vaga vazia) */
+.descarte--esperando .descarte__topo {
+    visibility: hidden;
+}
+
+.descarte--esperando .descarte__vaga:not(:has(.descarte__anterior)) {
+    border-color: rgba(246, 227, 180, 0.35);
+}
+
+.descarte--esperando .descarte__vaga:not(:has(.descarte__anterior))::before {
+    display: none;
+}
+
+.descarte__total {
+    position: absolute;
+    top: -0.45rem;
+    right: -0.45rem;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    min-width: 1.35rem;
+    height: 1.35rem;
+    padding: 0 0.25rem;
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: #1d120a;
+    background: #d9a63a;
+    border-radius: 999px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.descarte__botao:disabled .descarte__total {
+    color: #f6e3b4;
+    background: rgba(29, 18, 10, 0.9);
+    border: 1px solid rgba(217, 166, 58, 0.5);
+}
+
+.descarte__botao:not(:disabled):hover .descarte__vaga,
+.descarte__botao:focus-visible .descarte__vaga {
+    outline: 2px solid #d9a63a;
+    outline-offset: 3px;
+}
+
+/* a carta jogada acabou de cair no descarte */
+.descarte--chegou .descarte__vaga {
+    animation: cair-no-descarte 0.35s ease-out;
+}
+
+@keyframes cair-no-descarte {
+    50% {
+        scale: 1.12;
+    }
+}
+
+.descarte__janela {
+    width: min(56rem, 90vw);
+    max-height: 85vh;
+    margin: auto;
+    padding: 1rem 1.2rem;
+    font-family: Georgia, "Times New Roman", serif;
+    color: #f6e3b4;
+    background: #1d120a;
+    border: 1px solid #d9a63a;
+    border-radius: 0.8rem;
+}
+
+.descarte__janela::backdrop {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.descarte__titulo {
+    margin-bottom: 0.8rem;
+    font-size: 1.1rem;
+    color: #d9a63a;
+}
+
+.descarte__cartas {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+    gap: 0.7rem;
+    list-style: none;
+}
+
+.descarte__carta {
+    display: block;
+    width: 100%;
+    padding: 0;
+    background: none;
+    border: 2px solid transparent;
+    border-radius: 0.5rem;
+    cursor: zoom-in;
+}
+
+.descarte__carta:hover,
+.descarte__carta:focus-visible {
+    border-color: #d9a63a;
+    outline: none;
+}
+
+.descarte__carta img {
+    display: block;
+    width: 100%;
+    border-radius: 0.4rem;
+}
+
+.descarte__fechar {
+    display: block;
+    margin: 1rem 0 0 auto;
+    padding: 0.35rem 1rem;
+    font: inherit;
+    color: #1d120a;
+    background: #d9a63a;
+    border: 0;
+    border-radius: 0.5rem;
+    cursor: pointer;
+}
+
+/* carta em foco: grande, no meio da tela, por cima da janela; clicar (ou Esc) volta */
+.descarte__foco {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    background: rgba(0, 0, 0, 0.85);
+    cursor: zoom-out;
+}
+
+.descarte__foco[hidden] {
+    display: none;
+}
+
+.descarte__foco-carta {
+    height: 90vh;
+    max-width: 92vw;
+    object-fit: contain;
+    border-radius: 0.9rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
+}
+
+/*
+ * ---------- Carta jogada: sai de quem jogou, para no centro com o efeito e vai para o descarte ----------
+ * Quem move é o jogada_na_mesa.js. Parada no centro (.jogada--parada) aparece o texto; com .jogada--efeito,
+ * os selos aparecem em cima de quem mudou (posição posta pelo JS).
+ */
+/* abaixo do histórico e do painel de teste (40): o histórico aberto fica por cima da jogada */
+.jogada {
+    position: absolute;
+    inset: 0;
+    z-index: 35;
+    pointer-events: none;
+}
+
+.jogada__carta {
+    position: absolute;
+    top: calc(var(--centro-da-mesa) - 17vh);
+    left: calc(50% - 34vh * 657 / 1019 / 2);
+    height: 34vh;
+    aspect-ratio: 657 / 1019;
+    border-radius: 4% / 2.6%;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+}
+
+/* à direita da carta, no meio da altura dela, sem chegar no placar (9vw da borda, 11rem de largura mínima) */
+.jogada__texto {
+    position: absolute;
+    top: var(--centro-da-mesa);
+    left: calc(50% + 34vh * 657 / 1019 / 2 + 1rem);
+    max-width: min(17rem, 41vw - 34vh * 657 / 1019 / 2 - 11rem - 2rem);
+    margin: 0;
+    padding: 0.5rem 0.8rem;
+    translate: 0 -50%;
+    font: 0.95rem/1.35 Georgia, "Times New Roman", serif;
+    color: #f6e3b4;
+    background: rgba(29, 18, 10, 0.92);
+    border: 1px solid #d9a63a;
+    border-radius: 0.8rem;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.jogada--parada .jogada__texto {
+    opacity: 1;
+}
+
+.jogada__efeitos {
+    list-style: none;
+}
+
+.jogada__efeito {
+    position: fixed;
+    padding: 0.3rem 0.7rem;
+    translate: -50% -50%;
+    font: bold 1.05rem Georgia, "Times New Roman", serif;
+    white-space: nowrap;
+    color: #1d120a;
+    border-radius: 999px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.6);
+    opacity: 0;
+    transition: opacity 0.4s;
+}
+
+.jogada__efeito--sobe {
+    background: #7fc6a4;
+}
+
+.jogada__efeito--desce {
+    background: #e08a6d;
+}
+
+.jogada__efeito--descarte {
+    background: #d9a63a;
+}
+
+/* em cima das infos do jogador da tela; o segundo selo dele (ex.: descartou a mão e subiu) vai mais acima */
+.jogada__efeito:not([data-oponente]) {
+    translate: -50% -130%;
+}
+
+.jogada__efeito:not([data-oponente]) ~ .jogada__efeito:not([data-oponente]) {
+    translate: -50% -250%;
+}
+
+.jogada--efeito .jogada__efeito {
+    opacity: 1;
+    animation: estourar-efeito 0.45s ease-out;
+}
+
+@keyframes estourar-efeito {
+    0% {
+        scale: 0.4;
+    }
+    70% {
+        scale: 1.15;
+    }
 }
 
 /*
@@ -403,8 +769,10 @@ html, body {
     position: absolute;
     bottom: 0;
     left: calc(100% + 0.4rem);
-    width: 18rem;
-    padding: 0.45rem 0.7rem;
+    display: grid;
+    gap: 0.4rem;
+    width: max-content;
+    padding: 0.5rem 0.8rem 0.7rem;
     font-size: 0.85rem;
     line-height: 1.35;
     background: rgba(20, 13, 7, 0.97);
@@ -491,7 +859,7 @@ html, body {
 
 .historico__lista {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(24rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
     align-content: start;
     gap: 0.5rem 1.2rem;
     overflow: auto;
@@ -500,19 +868,111 @@ html, body {
 }
 
 .historico__linha {
-    display: flex;
-    gap: 0.7rem;
-    align-items: center;
-    padding: 0.4rem 0;
-    line-height: 1.35;
+    display: grid;
+    gap: 0.3rem;
+    padding: 0.5rem 0;
     border-bottom: 1px solid rgba(217, 166, 58, 0.25);
 }
 
-.historico__miniatura {
+/* no histórico completo a jogada fica menor, para caber mais */
+.historico__linha .lance {
+    --retrato: 3.2rem;
+    --altura-da-carta: 6.5rem;
+}
+
+/*
+ * ---------- Uma jogada em imagens (histórico), como no Hearthstone ----------
+ * Retrato de quem jogou → a carta → retrato de quem foi afetado, cada um com os selos do que mudou.
+ * O retrato é o recorte do desenho de uma carta de personagem (o miolo da carta, onde fica o Munchkin).
+ */
+.lance {
+    --retrato: 4.2rem;
+    --altura-da-carta: 10rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.lance__carta {
     flex: none;
-    width: 3.4rem;
-    height: auto;
-    border-radius: 0.25rem;
+    height: var(--altura-da-carta);
+    aspect-ratio: 657 / 1019;
+    border-radius: 0.4rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+}
+
+.lance__seta {
+    font-size: 1.8rem;
+    line-height: 1;
+    color: #d9a63a;
+}
+
+.participante {
+    display: grid;
+    justify-items: center;
+    gap: 0.25rem;
+    min-width: calc(var(--retrato) + 1rem);
+    margin: 0;
+}
+
+.participante__retrato {
+    display: grid;
+    place-items: center;
+    width: var(--retrato);
+    height: var(--retrato);
+    object-fit: cover;
+    /* só o miolo da carta (657 × 1019): um quadrado no meio do desenho */
+    object-view-box: inset(40% 20% 21% 20%);
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #1d120a;
+    background: #e8dcc0;
+    border: 2px solid #d9a63a;
+    border-radius: 50%;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.6);
+}
+
+.participante__nome {
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.participante__selos {
+    display: grid;
+    justify-items: center;
+    gap: 0.2rem;
+    list-style: none;
+}
+
+.selo {
+    padding: 0.1rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: bold;
+    white-space: nowrap;
+    color: #1d120a;
+    border-radius: 999px;
+}
+
+.selo--sobe {
+    background: #7fc6a4;
+}
+
+.selo--desce {
+    background: #e08a6d;
+}
+
+.selo--descarte {
+    background: #d9a63a;
+}
+
+/* texto só para o leitor de tela */
+.so-leitor {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
 }
 
 /*
@@ -838,9 +1298,19 @@ html, body {
         transition: none;
     }
 
-    .rodada--comecou,
-    .aviso {
+    .rodada--comecou {
         animation-duration: 1ms;
+    }
+
+    .jogada__texto,
+    .jogada__efeito {
+        transition: none;
+    }
+
+    .jogada--efeito .jogada__efeito,
+    .descarte--chegou .descarte__vaga,
+    .placar__linha--mudou {
+        animation: none;
     }
 
     .soltar-carta {
@@ -893,7 +1363,7 @@ html, body {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.55);
 }
 
-/* ---------- usar carta: área de soltar, janela de uso e aviso ---------- */
+/* ---------- usar carta: área de soltar e janela de uso ---------- */
 
 /* aparece só enquanto uma carta é arrastada; acende quando a carta está em cima dela (mesa--soltando-carta) */
 .soltar-carta {
@@ -1016,25 +1486,6 @@ html, body {
     color: #f6e3b4;
     background: transparent;
     border: 1px solid rgba(246, 227, 180, 0.5);
-}
-
-/* acima do painel da rodada; fica uns segundos e some */
-.aviso {
-    position: absolute;
-    top: calc(var(--centro-da-mesa) - 17vh);
-    left: 50%;
-    z-index: 5;
-    max-width: min(40rem, 60vw);
-    margin: 0;
-    padding: 0.5rem 1.1rem;
-    transform: translateX(-50%);
-    font: 1rem Georgia, "Times New Roman", serif;
-    text-align: center;
-    color: #f6e3b4;
-    background: rgba(29, 18, 10, 0.9);
-    border: 1px solid #d9a63a;
-    border-radius: 0.8rem;
-    animation: sumir-rodada 0.6s ease 6s forwards;
 }
 
 /*

@@ -102,6 +102,33 @@ class PartidaServiceTest {
     }
 
     @Test
+    void cadaJogadorGanhaUmRetratoSorteadoSemRepetir() {
+        Carta elfo = new Carta(TipoDeCarta.MASMORRA, "masmorra/5_racas/elfo_masmorra.jpg");
+        Carta mago = new Carta(TipoDeCarta.MASMORRA, "masmorra/6_classes/mago_masmorra.jpg");
+        Carta orc = new Carta(TipoDeCarta.MASMORRA, "masmorra/5_racas/orc_masmorra.jpg");
+        when(baralhoService.cartasDePersonagem()).thenReturn(List.of(elfo, mago, orc));
+        when(embaralhador.embaralhar(List.of(elfo, mago, orc))).thenReturn(List.of(orc, elfo, mago));
+
+        Partida partida = partidaService.criarComMaquina(2, TipoDeVitoria.CLASSICA, null);
+
+        assertThat(partida.getJogadores()).extracting(JogadorDaPartida::getRetrato).containsExactly(orc, elfo, mago);
+    }
+
+    @Test
+    void comMaisJogadoresQueRetratosAListaRecomecaESemRetratosNinguemTem() {
+        Carta elfo = new Carta(TipoDeCarta.MASMORRA, "masmorra/5_racas/elfo_masmorra.jpg");
+        when(baralhoService.cartasDePersonagem()).thenReturn(List.of(elfo));
+        when(embaralhador.embaralhar(List.of(elfo))).thenReturn(List.of(elfo));
+
+        assertThat(partidaService.criarComMaquina(2, TipoDeVitoria.CLASSICA, null).getJogadores())
+                .extracting(JogadorDaPartida::getRetrato).containsOnly(elfo);
+
+        when(baralhoService.cartasDePersonagem()).thenReturn(List.of());
+        assertThat(partidaService.criarComMaquina(2, TipoDeVitoria.CLASSICA, null).getJogadores())
+                .extracting(JogadorDaPartida::getRetrato).containsOnlyNulls();
+    }
+
+    @Test
     void naPreparacaoOJogadorAindaNaoDeuOkEOsBotsJaDeram() {
         Partida partida = partidaService.criarComMaquina(2, TipoDeVitoria.CLASSICA, null);
 
@@ -284,7 +311,8 @@ class PartidaServiceTest {
         assertThat(jogada.efeitos()).containsExactly(new MaoDescartada(partida.getJogador(), 2),
                 new MudancaDeNivel(partida.getJogador(), 0, 2));
         assertThat(partida.getJogador().getMao()).isEmpty();
-        assertThat(partida.getDescarte(TipoDeCarta.TESOURO)).containsExactly(carta("a"), carta("b"), carta("c"));
+        // a carta jogada fica no topo, depois da mão
+        assertThat(partida.getDescarte(TipoDeCarta.TESOURO)).containsExactly(carta("b"), carta("c"), carta("a"));
     }
 
     @Test

@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum TipoDeCarta {
 
+    /** Ainda sem cartas (só o verso): a pilha e o descarte já ficam na mesa. */
+    DUNGEON("Dungeon", "dungeon"),
     MASMORRA("Masmorra", "masmorra"),
     TESOURO("Tesouro", "tesouro");
 

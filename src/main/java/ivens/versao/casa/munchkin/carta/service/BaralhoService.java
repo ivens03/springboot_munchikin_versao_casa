@@ -11,7 +11,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static ivens.versao.casa.munchkin.jogo.service.RegrasBasicas.CARTAS_INICIAIS_DE_MASMORRA;
 import static ivens.versao.casa.munchkin.jogo.service.RegrasBasicas.CARTAS_INICIAIS_DE_TESOURO;
@@ -19,6 +22,9 @@ import static ivens.versao.casa.munchkin.jogo.service.RegrasBasicas.CARTAS_INICI
 @Service
 @RequiredArgsConstructor
 public class BaralhoService {
+
+    /** Pastas da Masmorra com cartas de personagem (o desenho de um Munchkin). */
+    private static final Set<String> GRUPOS_DE_PERSONAGEM = Set.of("5_racas", "6_classes");
 
     private final CartaRepository cartaRepository;
     private final Embaralhador embaralhador;
@@ -46,6 +52,18 @@ public class BaralhoService {
     /** Todas as cartas do catálogo, Masmorra e depois Tesouro (cada cópia é uma carta). */
     public List<Carta> todasAsCartas() {
         return Arrays.stream(TipoDeCarta.values()).flatMap(tipo -> cartaRepository.listar(tipo).stream()).toList();
+    }
+
+    /**
+     * Cartas com o desenho de um personagem (Raça e Classe), uma de cada (sem as cópias), na ordem do catálogo:
+     * de onde sai o retrato de cada jogador na mesa.
+     */
+    public List<Carta> cartasDePersonagem() {
+        Map<String, Carta> umaDeCada = new LinkedHashMap<>();
+        cartaRepository.listar(TipoDeCarta.MASMORRA).stream()
+                .filter(carta -> GRUPOS_DE_PERSONAGEM.contains(carta.grupo()))
+                .forEach(carta -> umaDeCada.putIfAbsent(carta.chave(), carta));
+        return List.copyOf(umaDeCada.values());
     }
 
     /** A carta do catálogo com essa imagem (ex.: "tesouro/3_suba_de_nivel/pagar_a_pizza_tesouro.jpg"). */
