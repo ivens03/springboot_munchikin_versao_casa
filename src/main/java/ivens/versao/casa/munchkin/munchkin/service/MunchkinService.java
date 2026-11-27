@@ -10,6 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.IntStream;
 
+import static ivens.versao.casa.munchkin.jogo.service.RegrasBasicas.PODER_DE_COMBATE_INICIAL;
+
 @Service
 @RequiredArgsConstructor
 public class MunchkinService {
@@ -32,11 +34,12 @@ public class MunchkinService {
     }
 
     /**
-     * Força de Combate: o Nível mais os bônus dos itens equipados (regra geral do Munchkin).
-     * Ainda não existe item equipado no jogo, então por enquanto é só o Nível.
+     * Poder de Combate (regra da casa): começa em 0 e soma o nível do Munchkin.
+     * Ex.: no nível 1 o poder é 0 + 1 = 1; com nível negativo o poder também fica negativo (nível -2 → -2).
+     * Os bônus (itens equipados...) entram aqui quando existirem.
      */
-    public int forcaDeCombate(Munchkin munchkin) {
-        return munchkin.getNivel();
+    public int poderDeCombate(Munchkin munchkin) {
+        return PODER_DE_COMBATE_INICIAL + munchkin.getNivel();
     }
 
     @Transactional

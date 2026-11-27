@@ -6,6 +6,8 @@
  * (5 de Tesouro e depois 5 de Masmorra).
  * As cartas já estão no HTML na posição final; quem voa é uma cópia, que some quando chega.
  * Quando a última carta chega, aparece o aviso do nível que vence, que some sozinho depois de uns segundos.
+ * Só roda logo depois de criar a partida (a <main> vem com data-distribuindo); num F5 as cartas já estão na mão.
+ * Enquanto distribui (.mesa--comprando) e enquanto o aviso aparece (.mesa--anunciando), a rodada fica escondida.
  */
 (() => {
     // na imagem pilha_*.png a carta do topo começa em (margem, margem) e ocupa a largura menos as margens
@@ -17,7 +19,7 @@
     const leques = [...document.querySelectorAll('.mao, .oponente__cartas')]
         .map(leque => [...leque.querySelectorAll('.carta')]);
 
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (!mesa.hasAttribute('data-distribuindo') || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         return;
     }
     mesa.classList.add('mesa--comprando');
@@ -69,7 +71,11 @@
         if (!vitoria) {
             return;
         }
-        vitoria.addEventListener('animationend', () => vitoria.remove(), {once: true});
+        mesa.classList.add('mesa--anunciando');
+        vitoria.addEventListener('animationend', () => {
+            vitoria.remove();
+            mesa.classList.remove('mesa--anunciando');
+        }, {once: true});
         vitoria.classList.add('vitoria--anunciada');
     }
 
@@ -124,6 +130,9 @@
                 }
             });
         }
-        Promise.all(voos).then(anunciarVitoria);
+        Promise.all(voos).then(() => {
+            mesa.classList.remove('mesa--comprando');
+            anunciarVitoria();
+        });
     });
 })();

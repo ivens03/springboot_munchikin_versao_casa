@@ -20,7 +20,7 @@ class MunchkinDtoMapperTest {
         assertThat(dto.nome()).isEqualTo("Jogador");
         assertThat(dto.raca()).isEqualTo("Humano");
         assertThat(dto.nivel()).isZero();
-        assertThat(dto.forcaDeCombate()).isEqualTo(3);
+        assertThat(dto.poderDeCombate()).isEqualTo(3);
         assertThat(dto.imagemDaMaoEsquerda()).isEqualTo("/img/moes/moes_humanas_esquerda.png");
         assertThat(dto.imagemDaMaoDireita()).isEqualTo("/img/moes/moes_humanas_direita.png");
         assertThat(dto.imagemDasCostasDaMaoEsquerda()).isEqualTo("/img/moes/moes_costas_humano_esquerda.png");

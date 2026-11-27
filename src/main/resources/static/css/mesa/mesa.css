@@ -40,7 +40,11 @@ html, body {
     height: 100dvh;
 }
 
-.mesa:has(.mao:hover) {
+/*
+ * a mão sobe com o mouse no leque; continua em cima enquanto arrasta uma carta
+ */
+.mesa:has(.mao:hover),
+.mesa:has(.carta--arrastando) {
     --descida-da-mao: 8vh;
 }
 
@@ -124,6 +128,84 @@ html, body {
 }
 
 /*
+ * ---------- Rodada, no centro da mesa ----------
+ * Embaixo fica acima de onde o leque chega quando a mão sobe: indo do leque para o OK, a mão desce.
+ * Escondida enquanto as cartas são distribuídas e enquanto o aviso da vitória aparece (mesmo lugar);
+ * depois aparece devagar. Sem animação (prefers-reduced-motion) já aparece.
+ */
+.rodada {
+    position: absolute;
+    top: calc(var(--centro-da-mesa) - 4vh);
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1.1rem;
+    font-family: Georgia, "Times New Roman", serif;
+    color: #f6e3b4;
+    background: rgba(29, 18, 10, 0.85);
+    border: 1px solid rgba(217, 166, 58, 0.7);
+    border-radius: 0.8rem;
+    transition: opacity 0.4s ease, visibility 0.4s;
+}
+
+.mesa--comprando .rodada,
+.mesa--anunciando .rodada {
+    opacity: 0;
+    visibility: hidden;
+}
+
+/* "Que vença o melhor Munchkin!": fica 10 s e some devagar (sem animação, some de uma vez) */
+.rodada--comecou {
+    animation: sumir-rodada 0.6s ease 10s forwards;
+}
+
+@keyframes sumir-rodada {
+    to {
+        opacity: 0;
+        visibility: hidden;
+    }
+}
+
+.rodada__titulo {
+    font-size: 1.15rem;
+    font-weight: bold;
+    color: #d9a63a;
+}
+
+.rodada__fase {
+    font-weight: normal;
+    color: #f6e3b4;
+}
+
+/* texto em duas linhas com o OK do lado: cabe entre as pilhas e o placar */
+.rodada__acao {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    max-width: 25rem;
+    font-size: 0.9rem;
+    line-height: 1.35;
+}
+
+.rodada__ok {
+    padding: 0.25rem 1.1rem;
+    font: bold 1rem Georgia, "Times New Roman", serif;
+    color: #1d120a;
+    background: #d9a63a;
+    border: 1px solid #f6e3b4;
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.rodada__ok:hover,
+.rodada__ok:focus-visible {
+    background: #f2c35a;
+}
+
+/*
  * ---------- Informações do jogador, embaixo das próprias cartas ----------
  * Escondidas até o mouse ir para o leque; aí sobem junto com a mão e ocupam o espaço que ela deixa
  * embaixo, entre os polegares. Ficam na frente das cartas e sem pegar o mouse (a mão não desce).
@@ -152,7 +234,8 @@ html, body {
     transition: transform 0.3s ease, opacity 0.3s ease, visibility 0.3s;
 }
 
-.mesa:has(.mao:hover) .jogador {
+.mesa:has(.mao:hover) .jogador,
+.mesa:has(.carta--arrastando) .jogador {
     --descida-das-informacoes: 0%;
     opacity: 1;
     visibility: visible;
@@ -291,21 +374,34 @@ html, body {
     transition: transform 0.25s ease;
 }
 
+/* dá para arrastar a carta para mudar a ordem (organizar_mao.js); o toque arrasta em vez de rolar a tela */
 .mao .carta {
-    cursor: pointer;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
 }
 
-/* vizinhas da carta selecionada abrem espaço */
-.mao .carta:has(+ .carta:hover) {
+/*
+ * Carta selecionada: a do mouse ou, durante o arrasto, só a arrastada (mesmo que o mouse passe por outra).
+ * Vizinhas da carta selecionada abrem espaço.
+ */
+.mao:not(:has(.carta--arrastando)) .carta:has(+ .carta:hover),
+.mao .carta:has(+ .carta--arrastando) {
     --empurrao: -1;
 }
 
-.mao .carta:hover + .carta {
+.mao:not(:has(.carta--arrastando)) .carta:hover + .carta,
+.mao .carta--arrastando + .carta {
     --empurrao: 1;
 }
 
+.mao .carta--arrastando {
+    cursor: grabbing;
+}
+
 /* carta selecionada: salta para cima, cresce e fica reta, na frente das outras */
-.mao .carta:hover {
+.mao:not(:has(.carta--arrastando)) .carta:hover,
+.mao .carta--arrastando {
     z-index: 10;
     transform:
         translateX(calc(var(--deslocamento) * var(--espaco-entre-cartas)))
@@ -314,7 +410,8 @@ html, body {
 }
 
 /* área invisível embaixo da carta que saltou: o mouse continua "em cima" dela no lugar de onde ela subiu */
-.mao .carta:hover::after {
+.mao:not(:has(.carta--arrastando)) .carta:hover::after,
+.mao .carta--arrastando::after {
     content: "";
     position: absolute;
     left: 0;
@@ -508,8 +605,13 @@ html, body {
     .mao,
     .carta,
     .jogador,
+    .rodada,
     .oponente__contagem {
         transition: none;
+    }
+
+    .rodada--comecou {
+        animation-duration: 1ms;
     }
 }
 

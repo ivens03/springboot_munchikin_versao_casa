@@ -6,6 +6,8 @@ import ivens.versao.casa.munchkin.munchkin.model.Raca;
 import ivens.versao.casa.munchkin.munchkin.repository.MunchkinRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -16,6 +18,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -50,12 +53,31 @@ class MunchkinServiceTest {
     }
 
     @Test
-    void semItemEquipadoAForcaDeCombateEOProprioNivel() {
-        Munchkin jogador = munchkinService.novoJogador();
-
-        assertThat(munchkinService.forcaDeCombate(jogador)).isEqualTo(jogador.getNivel()).isZero();
+    void jogadorNovoComecaComPoderDeCombateZero() {
+        assertThat(munchkinService.poderDeCombate(munchkinService.novoJogador())).isZero();
     }
 
+    /** Poder de Combate = 0 (inicial) + nível: no nível 1 é 0 + 1 = 1; nível negativo deixa o poder negativo. */
+    @ParameterizedTest
+    @CsvSource({"-7,-7", "-1,-1", "0,0", "1,1", "9,9", "10,10"})
+    void oNivelSomaNoPoderDeCombate(int nivel, int poderEsperado) {
+        Munchkin munchkin = mock(Munchkin.class);
+        when(munchkin.getNivel()).thenReturn(nivel);
+
+        assertThat(munchkinService.poderDeCombate(munchkin)).isEqualTo(poderEsperado);
+    }
+
+    /** Vitória clássica (nível 10): vender não pode dar o nível 10. */
+    @ParameterizedTest
+    @CsvSource({
+            "999,0,false",   // falta ouro
+            "1000,0,true",
+            "2500,0,true",
+            "1000,8,true",   // 8 → 9
+            "1000,9,false",  // 9 → 10 seria o nível da vitória
+            "5000,9,false",
+            "1000,-5,true"   // nível negativo também sobe vendendo
+    })
     @Test
     void botsSaoNumeradosComecamHumanosENaoSaoSalvos() {
         List<Munchkin> bots = munchkinService.novosBots(3);

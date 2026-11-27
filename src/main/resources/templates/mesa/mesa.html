@@ -4,6 +4,8 @@
   A página inclui com th:replace, dentro de um <main class="mesa">, e carrega:
     /css/mesa/mesa.css        → visual e mecânica (mão sobe no hover, carta salta, leque)
     /js/mesa/compra_inicial.js → animação das cartas saindo das pilhas e o aviso da vitória no fim
+                                 (só quando a <main> tem data-distribuindo: logo depois de criar a partida)
+    /js/mesa/organizar_mao.js  → arrastar uma carta no leque muda a ordem da mão
 -->
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
 <body>
@@ -24,7 +26,33 @@
 <p th:fragment="vitoria(vitoria)" class="vitoria" role="status"
    th:text="|Vitória no nível ${vitoria.nivel}|">Vitória no nível 10</p>
 
-<!-- informações do jogador, embaixo das próprias cartas: sobem junto com a mão (mouse no leque) -->
+<!--
+  Rodada da partida, no centro da mesa. Na preparação (rodada 0) explica o que fazer e tem o OK;
+  depois do OK, se ainda falta alguém (multiplayer), avisa que está esperando.
+  Quando todos deram OK (comecou: só logo depois do OK) deseja boa sorte e some sozinha depois de 10 s;
+  fora isso, depois da preparação não aparece nada.
+  Durante a distribuição e o aviso da vitória fica escondida (o compra_inicial.js controla).
+-->
+<section th:fragment="rodada(rodada, acaoPronto, comecou)" th:if="${rodada.preparacao} or ${comecou}"
+         class="rodada" th:classappend="${comecou} ? 'rodada--comecou'" aria-live="polite">
+    <p th:if="${comecou}" class="rodada__titulo">Que vença o melhor Munchkin!</p>
+    <p th:if="${rodada.preparacao}" class="rodada__titulo">
+        <span th:text="|Rodada ${rodada.numero}|">Rodada 0</span>
+        <span class="rodada__fase">· Preparação</span>
+    </p>
+    <form th:if="${rodada.preparacao and !rodada.jogadorPronto}" class="rodada__acao" method="post"
+          th:action="${acaoPronto}">
+        <span>Arraste as cartas para mudar a ordem. Quando todos derem OK, a partida começa.</span>
+        <button class="rodada__ok" type="submit">OK</button>
+    </form>
+    <p th:if="${rodada.preparacao and rodada.jogadorPronto}" class="rodada__acao">
+        Esperando os outros jogadores darem OK…
+    </p>
+</section>
+
+<!--
+  Informações do jogador, embaixo das próprias cartas: sobem junto com a mão (mouse no leque).
+-->
 <dl th:fragment="infoDoJogador(jogador)" class="jogador">
     <div class="jogador__dado">
         <dt>Nome:</dt>
@@ -39,8 +67,8 @@
         <dd th:text="${jogador.nivel}">0</dd>
     </div>
     <div class="jogador__dado">
-        <dt>Nível de força:</dt>
-        <dd th:text="${jogador.forcaDeCombate}">0</dd>
+        <dt>Poder de combate:</dt>
+        <dd th:text="${jogador.poderDeCombate}">0</dd>
     </div>
 </dl>
 
@@ -55,8 +83,11 @@
     </ol>
 </section>
 
-<!-- mãos do jogador segurando o leque com as cartas dele -->
-<th:block th:fragment="maoDoJogador(jogador, cartas)">
+<!--
+  Mãos do jogador segurando o leque com as cartas dele.
+  data-posicao é a posição da carta na mão do servidor; acaoOrdenar recebe a ordem nova (organizar_mao.js).
+-->
+<th:block th:fragment="maoDoJogador(jogador, cartas, acaoOrdenar)">
     <div class="segurador segurador--esquerdo">
         <img class="segurador__mao" th:src="@{${jogador.imagemDaMaoEsquerda}}"
              th:alt="|Mão esquerda do ${jogador.nome} (${jogador.raca})|">
@@ -66,12 +97,14 @@
              th:alt="|Mão direita do ${jogador.nome} (${jogador.raca})|">
     </div>
 
-    <ol class="mao" aria-label="Cartas na mão" th:style="|--total: ${#lists.size(cartas)}|">
-        <li class="carta" th:each="carta, posicao : ${cartas}" th:attr="data-pilha=${carta.tipo}"
+    <ol class="mao" aria-label="Cartas na mão" th:style="|--total: ${#lists.size(cartas)}|"
+        th:attr="data-ordenar=${acaoOrdenar}">
+        <li class="carta" th:each="carta, posicao : ${cartas}"
+            th:attr="data-pilha=${carta.tipo},data-posicao=${posicao.index}"
             th:style="|--i: ${posicao.index}|">
             <div class="carta__interior">
-                <img class="carta__frente" th:src="@{${carta.imagem}}" th:alt="${carta.nome}">
-                <img class="carta__verso" th:src="@{${carta.verso}}" alt="">
+                <img class="carta__frente" th:src="@{${carta.imagem}}" th:alt="${carta.nome}" draggable="false">
+                <img class="carta__verso" th:src="@{${carta.verso}}" alt="" draggable="false">
             </div>
         </li>
     </ol>

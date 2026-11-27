@@ -7,14 +7,18 @@
     <link rel="stylesheet" th:href="@{/css/mesa/mesa.css}">
 </head>
 <body>
-<main class="mesa">
+<main class="mesa" th:attr="data-distribuindo=${distribuindo}">
     <section th:replace="~{mesa/mesa :: pilhas}"></section>
     <p th:replace="~{mesa/mesa :: vitoria(${vitoria})}"></p>
+    <section th:replace="~{mesa/mesa :: rodada(${rodada},
+            @{/jogar-com-maquina/{id}/pronto(id=${partidaId})}, ${comecou})}"></section>
     <ol th:replace="~{mesa/mesa :: oponentes(${oponentes})}"></ol>
     <section th:replace="~{mesa/mesa :: placar(${oponentes})}"></section>
     <dl th:replace="~{mesa/mesa :: infoDoJogador(${jogador})}"></dl>
-    <th:block th:replace="~{mesa/mesa :: maoDoJogador(${jogador}, ${maoInicial})}"></th:block>
+    <th:block th:replace="~{mesa/mesa :: maoDoJogador(${jogador}, ${mao},
+            @{/jogar-com-maquina/{id}/mao(id=${partidaId})})}"></th:block>
 </main>
 <script th:src="@{/js/mesa/compra_inicial.js}"></script>
+<script th:src="@{/js/mesa/organizar_mao.js}"></script>
 </body>
 </html>

@@ -9,10 +9,10 @@ public class MunchkinDtoMapper {
 
     private static final String PASTA_DAS_MAOS = "/img/moes/";
 
-    public MunchkinDto paraDto(Munchkin munchkin, int forcaDeCombate) {
+    public MunchkinDto paraDto(Munchkin munchkin, int poderDeCombate) {
         String maos = PASTA_DAS_MAOS + imagemDasMaos(munchkin.getRaca());
         String costas = PASTA_DAS_MAOS + imagemDasCostasDasMaos(munchkin.getRaca());
-        return new MunchkinDto(munchkin.getNome(), munchkin.getRaca().getNome(), munchkin.getNivel(), forcaDeCombate,
+        return new MunchkinDto(munchkin.getNome(), munchkin.getRaca().getNome(), munchkin.getNivel(), poderDeCombate,
                 maos + "_esquerda.png", maos + "_direita.png",
                 costas + "_esquerda.png", costas + "_direita.png");
     }

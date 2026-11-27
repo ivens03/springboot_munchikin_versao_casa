@@ -10,6 +10,15 @@ public final class RegrasBasicas {
     /** Regra da casa: todo Munchkin começa no nível 0. */
     public static final int NIVEL_INICIAL = 0;
 
+    /**
+     * Regra da casa: a rodada 0 é a preparação. As cartas são distribuídas e cada um organiza a mão;
+     * não se joga e não vale limite de cartas nem descarte. Termina quando todos dão OK.
+     */
+    public static final int RODADA_DE_PREPARACAO = 0;
+
+    /** Regra da casa: o Poder de Combate começa em 0 e o nível do Munchkin soma nele. */
+    public static final int PODER_DE_COMBATE_INICIAL = 0;
+
     /** Vitória clássica: ganha quem chegar ao nível 10. */
     public static final int NIVEL_DE_VITORIA_CLASSICA = 10;
 
