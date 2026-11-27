@@ -322,6 +322,200 @@ html, body {
 }
 
 /*
+ * ---------- Histórico das cartas jogadas (canto de baixo, à esquerda) ----------
+ * Coluna de 11 quadrados no canto livre ao lado da mão esquerda do jogador (abaixo dos assentos laterais dos bots,
+ * mesmo com 10): as últimas 10 jogadas (a última em cima) e, embaixo, o "Tudo", que abre o histórico completo quase
+ * em tela cheia depois de o mouse ficar um instante em cima (a demora evita abrir só de passar).
+ * O detalhe de cada jogada aparece à direita do quadrado, crescendo para cima.
+ * Sem transform aqui: com ele, o histórico completo (position: fixed) ficaria preso dentro da coluna.
+ */
+.historico {
+    --quadrado: 3.6vh;
+    --vao: 0.55vh;
+    position: absolute;
+    bottom: 1.5vh;
+    left: 1vw;
+    z-index: 40;
+    font-family: Georgia, "Times New Roman", serif;
+    color: #f6e3b4;
+}
+
+.historico__fila {
+    display: flex;
+    flex-direction: column;
+    gap: var(--vao);
+    list-style: none;
+}
+
+.historico__jogada,
+.historico__vaga,
+.historico__tudo {
+    position: relative;
+    width: var(--quadrado);
+    height: var(--quadrado);
+    border-radius: 0.35rem;
+}
+
+.historico__vaga {
+    border: 1px dashed rgba(217, 166, 58, 0.35);
+}
+
+.historico__jogada {
+    border: 1px solid rgba(217, 166, 58, 0.7);
+    background: #1d120a;
+    cursor: default;
+}
+
+.historico__jogada:hover,
+.historico__jogada:focus-visible {
+    border-color: #f6e3b4;
+    outline: none;
+}
+
+/* recorte de cima da carta: o título dela */
+.historico__carta {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+    border-radius: inherit;
+}
+
+.historico__quem {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    padding: 0 0.1rem;
+    overflow: hidden;
+    font-size: 0.52rem;
+    line-height: 1.25;
+    text-align: center;
+    white-space: nowrap;
+    color: #f6e3b4;
+    background: rgba(29, 18, 10, 0.85);
+    border-radius: 0 0 0.35rem 0.35rem;
+}
+
+/* o que a jogada fez, à direita do quadrado, crescendo para cima (o quadrado de baixo fica perto do pé da tela) */
+.historico__detalhe {
+    position: absolute;
+    bottom: 0;
+    left: calc(100% + 0.4rem);
+    width: 18rem;
+    padding: 0.45rem 0.7rem;
+    font-size: 0.85rem;
+    line-height: 1.35;
+    background: rgba(20, 13, 7, 0.97);
+    border: 1px solid rgba(217, 166, 58, 0.7);
+    border-radius: 0.6rem;
+    visibility: hidden;
+}
+
+.historico__jogada:hover .historico__detalhe,
+.historico__jogada:focus-visible .historico__detalhe {
+    visibility: visible;
+}
+
+.historico__rodada {
+    display: block;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #d9a63a;
+}
+
+.historico__tudo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.55rem;
+    line-height: 1.1;
+    color: #d9a63a;
+    background: rgba(29, 18, 10, 0.85);
+    border: 1px solid rgba(217, 166, 58, 0.7);
+    cursor: zoom-in;
+}
+
+.historico__tudo:hover,
+.historico__tudo:focus-visible {
+    color: #1d120a;
+    background: #d9a63a;
+    outline: none;
+}
+
+/*
+ * Histórico completo: fica dentro do "Tudo", então o mouse em cima dele continua "em cima do Tudo" e ele não fecha;
+ * fecha quando o mouse sai (a borda da tela fica livre para isso).
+ */
+.historico__completo {
+    position: fixed;
+    inset: 5vh 5vw;
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 1.4rem;
+    font-size: 0.95rem;
+    color: #f6e3b4;
+    background: rgba(20, 13, 7, 0.97);
+    border: 1px solid #d9a63a;
+    border-radius: 1rem;
+    box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.45);
+    cursor: default;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease, visibility 0s linear 0.15s;
+}
+
+.historico__tudo:hover .historico__completo,
+.historico__tudo:focus-visible .historico__completo {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.15s ease 0.4s, visibility 0s linear 0.4s;
+}
+
+.historico__titulo {
+    margin-bottom: 0.6rem;
+    font-size: 1rem;
+    font-weight: normal;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #d9a63a;
+}
+
+.historico__vazio {
+    font-style: italic;
+}
+
+.historico__lista {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(24rem, 1fr));
+    align-content: start;
+    gap: 0.5rem 1.2rem;
+    overflow: auto;
+    scrollbar-color: rgba(217, 166, 58, 0.7) transparent;
+    list-style: none;
+}
+
+.historico__linha {
+    display: flex;
+    gap: 0.7rem;
+    align-items: center;
+    padding: 0.4rem 0;
+    line-height: 1.35;
+    border-bottom: 1px solid rgba(217, 166, 58, 0.25);
+}
+
+.historico__miniatura {
+    flex: none;
+    width: 3.4rem;
+    height: auto;
+    border-radius: 0.25rem;
+}
+
+/*
  * ---------- Mãos do jogador ----------
  * As mãos ficam atrás das cartas (palma para a frente, dedos atrás do leque).
  */

@@ -179,7 +179,7 @@ public class PartidaService {
                 }));
     }
 
-    /** Confere a carta pelo SubaDeNivelService, tira da mão, descarta e muda os níveis. */
+    /** Confere a carta pelo SubaDeNivelService, tira da mão, descarta, muda os níveis e registra no histórico. */
     private JogadaDeCarta aplicarCartaDeNivel(Partida partida, JogadorDaPartida jogador, int posicao,
                                                      OpcaoDeNivel opcao, JogadorDaPartida alvo) {
         List<Carta> mao = jogador.getMao();
@@ -199,6 +199,7 @@ public class PartidaService {
             efeitos.add(mudarNivel(alvo, -efeito.niveisQueOAlvoPerde()));
         }
         JogadaDeCarta jogada = new JogadaDeCarta(partida.getRodada(), jogador, carta, alvo, efeitos);
+        partida.registrar(jogada);
         partidaRepository.salvar(partida);
         return jogada;
     }

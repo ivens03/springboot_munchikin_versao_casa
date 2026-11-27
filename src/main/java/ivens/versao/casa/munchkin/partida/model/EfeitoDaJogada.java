@@ -1,8 +1,8 @@
 package ivens.versao.casa.munchkin.partida.model;
 
 /**
- * O que uma carta jogada mudou na mesa, guardado com o valor de antes e de depois
- * (o aviso da jogada não pode depender do estado atual, que muda depois). Cada tipo de efeito é um record;
+ * O que uma carta jogada mudou na mesa, guardado no histórico com o valor de antes e de depois
+ * (o histórico não pode depender do estado atual, que muda depois). Cada tipo de efeito é um record;
  * o combate vai somar os dele (ex.: bônus no monstro).
  */
 public sealed interface EfeitoDaJogada {

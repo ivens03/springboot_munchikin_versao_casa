@@ -66,6 +66,23 @@ class JogadaDeCartaDtoMapperTest {
                 "Você usou Roubar 1 nivel em Bot 2: subiu do nível -2 para o -1 e Bot 2 desceu do nível 4 para o 3.");
     }
 
+    @Test
+    void historicoComAUltimaJogadaPrimeiro() {
+        JogadaDeCarta botSubiu = new JogadaDeCarta(1, bot2, carta("pagar_a_pizza"), null,
+                List.of(new MudancaDeNivel(bot2, 2, 3)));
+
+        assertThat(mapper.historico(List.of(voceSubiu, botSubiu))).containsExactly(
+                new JogadaDto(1, "Bot 2", "Bot 2 usou Pagar a pizza: subiu do nível 2 para o 3.", "Pagar a pizza",
+                        "/img/cartas/tesouro/3_suba_de_nivel/pagar_a_pizza_tesouro.jpg"),
+                new JogadaDto(0, "Você", "Você usou Pagar a pizza: subiu do nível 0 para o 1.", "Pagar a pizza",
+                        "/img/cartas/tesouro/3_suba_de_nivel/pagar_a_pizza_tesouro.jpg"));
+    }
+
+    @Test
+    void historicoVazio() {
+        assertThat(mapper.historico(List.of())).isEmpty();
+    }
+
     private static Carta carta(String chave) {
         return new Carta(TipoDeCarta.TESOURO, "tesouro/3_suba_de_nivel/" + chave + "_tesouro.jpg");
     }

@@ -81,6 +81,7 @@ public class JogarComMaquinaWeb {
         model.addAttribute("mao", cartaDtoMapper.paraDto(partida.getJogador().getMao()));
         model.addAttribute("usos", usoDeCartaDtoMapper.paraDto(partidaService.usosDaMaoDoJogador(partida)));
         model.addAttribute("opcoesDeUso", usoDeCartaDtoMapper.todasAsOpcoes());
+        model.addAttribute("historico", jogadaDeCartaDtoMapper.historico(partida.getHistorico()));
         model.addAttribute("oponentes", partida.getOponentes().stream()
                 .map(oponente -> new OponenteDto(paraDto(oponente.getMunchkin()),
                         cartaDtoMapper.paraMaoFechada(oponente.getMao())))

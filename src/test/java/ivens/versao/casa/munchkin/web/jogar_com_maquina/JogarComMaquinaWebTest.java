@@ -25,6 +25,7 @@ import ivens.versao.casa.munchkin.munchkin.exception.VendaDeOuroNaoPermitidaExce
 import ivens.versao.casa.munchkin.munchkin.model.Munchkin;
 import ivens.versao.casa.munchkin.munchkin.service.MunchkinService;
 import ivens.versao.casa.munchkin.partida.dto.JogadaDeCartaDtoMapper;
+import ivens.versao.casa.munchkin.partida.dto.JogadaDto;
 import ivens.versao.casa.munchkin.partida.dto.RodadaDto;
 import ivens.versao.casa.munchkin.partida.dto.RodadaDtoMapper;
 import ivens.versao.casa.munchkin.partida.exception.AlvoInvalidoException;
@@ -365,6 +366,40 @@ class JogarComMaquinaWebTest {
         mockMvc.perform(get(urlDaMesa).flashAttr("aviso", "Você usou Pagar a pizza e subiu para o nível 1."))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Você usou Pagar a pizza e subiu para o nível 1.")));
+    }
+
+    @Test
+    void historicoApareceNaMesaComAUltimaPrimeiro() throws Exception {
+        mesaDepoisDaPreparacao();
+        List<JogadaDto> historico = List.of(
+                new JogadaDto(1, "Bot 1", "Bot 1 usou Pagar a pizza: subiu do nível 1 para o 2.", "Pagar a pizza",
+                        "/img/cartas/tesouro/3_suba_de_nivel/pagar_a_pizza_tesouro.jpg"),
+                new JogadaDto(0, "Você", "Você usou Pagar a pizza: subiu do nível 0 para o 1.", "Pagar a pizza",
+                        "/img/cartas/tesouro/3_suba_de_nivel/pagar_a_pizza_tesouro.jpg"));
+        when(jogadaDeCartaDtoMapper.historico(partida.getHistorico())).thenReturn(historico);
+
+        String pagina = mockMvc.perform(get(urlDaMesa))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("historico", historico))
+                .andExpect(content().string(containsString("Histórico completo · 2 jogadas")))
+                .andExpect(content().string(containsString("Bot 1 usou Pagar a pizza: subiu do nível 1 para o 2.")))
+                .andExpect(content().string(not(containsString("Nenhuma carta jogada ainda."))))
+                .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+
+        // fileira: 2 quadrados com jogada (a última primeiro) e 8 vagas antes do "Tudo"
+        assertThat(org.springframework.util.StringUtils.countOccurrencesOf(pagina, "class=\"historico__jogada\"")).isEqualTo(2);
+        assertThat(org.springframework.util.StringUtils.countOccurrencesOf(pagina, "class=\"historico__vaga\"")).isEqualTo(8);
+        assertThat(pagina.indexOf("Rodada 1: Bot 1 usou")).isLessThan(pagina.indexOf("Rodada 0: Você usou"));
+    }
+
+    @Test
+    void historicoVazioDizQueNinguemJogou() throws Exception {
+        mesaDepoisDaPreparacao();
+
+        mockMvc.perform(get(urlDaMesa))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Histórico completo · 0 jogadas")))
+                .andExpect(content().string(containsString("Nenhuma carta jogada ainda.")));
     }
 
     @Test

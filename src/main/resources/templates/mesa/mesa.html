@@ -94,6 +94,50 @@
 </section>
 
 <!--
+  Histórico das cartas jogadas, numa coluna no canto de baixo, à esquerda: as últimas 10 jogadas, a última em cima
+  (vaga sem jogada fica tracejada), e no 11º quadrado, embaixo, o histórico completo.
+  Mouse (ou foco) num quadrado mostra o que aquela jogada fez; parado no 11º, o histórico completo abre quase em
+  tela cheia e fecha quando o mouse sai dele. Enquanto aberto, a mesa não recarrega (bots_jogam.js).
+  jogadas: todas, com a última primeiro (JogadaDeCartaDtoMapper.historico).
+-->
+<section th:fragment="historico(jogadas)" class="historico" aria-label="Histórico das cartas jogadas">
+    <ol class="historico__fila">
+        <th:block th:each="vaga : ${#numbers.sequence(0, 9)}">
+            <li th:if="${vaga < #lists.size(jogadas)}" th:with="jogada=${jogadas[vaga]}" class="historico__jogada"
+                tabindex="0" th:aria-label="|Rodada ${jogada.rodada}: ${jogada.texto}|">
+                <img class="historico__carta" th:src="@{${jogada.imagem}}" alt="" draggable="false">
+                <span class="historico__quem" th:text="${jogada.quem}">Bot 1</span>
+                <span class="historico__detalhe">
+                    <span class="historico__rodada" th:text="|Rodada ${jogada.rodada}|">Rodada 0</span>
+                    <span th:text="${jogada.texto}">Bot 1 usou Pagar a pizza: subiu do nível 0 para o 1.</span>
+                </span>
+            </li>
+            <li th:unless="${vaga < #lists.size(jogadas)}" class="historico__vaga" aria-hidden="true"></li>
+        </th:block>
+        <li class="historico__tudo" tabindex="0" aria-haspopup="dialog">
+            <span class="historico__tudo-texto">Tudo</span>
+            <span class="historico__total" th:text="|(${#lists.size(jogadas)})|">(0)</span>
+            <div class="historico__completo" role="dialog" aria-labelledby="titulo-do-historico">
+                <h2 id="titulo-do-historico" class="historico__titulo"
+                    th:text="|Histórico completo · ${#lists.size(jogadas)} ${#lists.size(jogadas) == 1 ? 'jogada' : 'jogadas'}|">
+                    Histórico completo · 0 jogadas</h2>
+                <p th:if="${#lists.isEmpty(jogadas)}" class="historico__vazio">Nenhuma carta jogada ainda.</p>
+                <ol th:unless="${#lists.isEmpty(jogadas)}" class="historico__lista">
+                    <li class="historico__linha" th:each="jogada : ${jogadas}">
+                        <img class="historico__miniatura" th:src="@{${jogada.imagem}}" th:alt="${jogada.carta}"
+                             loading="lazy" draggable="false">
+                        <p>
+                            <span class="historico__rodada" th:text="|Rodada ${jogada.rodada}|">Rodada 0</span>
+                            <span th:text="${jogada.texto}">Bot 1 usou Pagar a pizza: subiu do nível 0 para o 1.</span>
+                        </p>
+                    </li>
+                </ol>
+            </div>
+        </li>
+    </ol>
+</section>
+
+<!--
   Mãos do jogador segurando o leque com as cartas dele.
   data-posicao é a posição da carta na mão do servidor; acaoOrdenar recebe a ordem nova (organizar_mao.js).
   usos (um por carta, na ordem da mão) diz como a carta pode ser usada: data-opcoes (liberadas agora),

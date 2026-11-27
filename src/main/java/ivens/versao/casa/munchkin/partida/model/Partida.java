@@ -32,6 +32,10 @@ public class Partida {
     @Getter(lombok.AccessLevel.NONE)
     private final Map<TipoDeCarta, List<Carta>> descartes = new EnumMap<>(TipoDeCarta.class);
 
+    /** Cartas jogadas, da primeira para a última. */
+    @Getter(lombok.AccessLevel.NONE)
+    private final List<JogadaDeCarta> historico = new ArrayList<>();
+
     public Partida(UUID id, Vitoria vitoria, List<JogadorDaPartida> jogadores) {
         this.id = id;
         this.vitoria = vitoria;
@@ -54,5 +58,13 @@ public class Partida {
 
     public List<Carta> getDescarte(TipoDeCarta tipo) {
         return List.copyOf(descartes.getOrDefault(tipo, List.of()));
+    }
+
+    public void registrar(JogadaDeCarta jogada) {
+        historico.add(jogada);
+    }
+
+    public List<JogadaDeCarta> getHistorico() {
+        return List.copyOf(historico);
     }
 }

@@ -79,7 +79,7 @@ class PartidaServiceTest {
         when(munchkinService.novoJogador()).thenReturn(jogador);
         when(munchkinService.novosBots(2)).thenReturn(List.of(bot1, bot2));
         when(baralhoService.distribuirMaosIniciais(3)).thenReturn(List.of(maoDoJogador, maoDoBot1, maoDoBot2));
-        // mudar de nível de verdade, para a jogada guardar o antes e o depois
+        // mudar de nível de verdade, para o histórico guardar o antes e o depois
         doAnswer(chamada -> {
             Munchkin munchkin = chamada.getArgument(0);
             munchkin.setNivel(munchkin.getNivel() + chamada.<Integer>getArgument(1));
@@ -268,6 +268,7 @@ class PartidaServiceTest {
         assertThat(partida.getDescarte(TipoDeCarta.TESOURO)).containsExactly(carta("b"));
         assertThat(jogada).isEqualTo(new JogadaDeCarta(0, partida.getJogador(), carta("b"), null,
                 List.of(new MudancaDeNivel(partida.getJogador(), 0, 1))));
+        assertThat(partida.getHistorico()).containsExactly(jogada);
     }
 
     @Test
@@ -300,6 +301,31 @@ class PartidaServiceTest {
         assertThat(jogada.alvo()).isSameAs(alvo);
         assertThat(jogada.efeitos()).containsExactly(new MudancaDeNivel(partida.getJogador(), 0, 1),
                 new MudancaDeNivel(alvo, -1, -2));
+    }
+
+    @Test
+    void historicoGuardaAsJogadasNaOrdemComARodada() {
+        Partida partida = partidaComNiveis();
+        when(subaDeNivelService.usar(any(), any(), any())).thenReturn(EfeitoDeNivel.SUBIR_1);
+
+        partidaService.usarCartaDeNivel(partida.getId(), 0, OpcaoDeNivel.SUBIR_1_NIVEL, null);
+        partidaService.confirmarPronto(partida.getId());
+        partidaService.usarCartaDeNivel(partida.getId(), 0, OpcaoDeNivel.SUBIR_1_NIVEL, null);
+
+        assertThat(partida.getHistorico()).extracting(JogadaDeCarta::rodada, JogadaDeCarta::carta)
+                .containsExactly(org.assertj.core.groups.Tuple.tuple(0, carta("a")),
+                        org.assertj.core.groups.Tuple.tuple(1, carta("b")));
+    }
+
+    @Test
+    void cartaRecusadaNaoEntraNoHistorico() {
+        Partida partida = partidaComNiveis();
+        when(subaDeNivelService.usar(carta("a"), OpcaoDeNivel.SUBIR_1_NIVEL, situacao))
+                .thenThrow(new UsoDeCartaNaoPermitidoException("a", ImpedimentoDeUso.NIVEL_DA_VITORIA));
+
+        assertThatThrownBy(() -> partidaService.usarCartaDeNivel(partida.getId(), 0, OpcaoDeNivel.SUBIR_1_NIVEL, null))
+                .isInstanceOf(UsoDeCartaNaoPermitidoException.class);
+        assertThat(partida.getHistorico()).isEmpty();
     }
 
     @ParameterizedTest
@@ -404,6 +430,7 @@ class PartidaServiceTest {
         JogadorDaPartida bot = partida.getOponentes().getFirst();
         assertThat(jogada.jogada()).isEqualTo(new JogadaDeCarta(0, bot, carta("d"), null,
                 List.of(new MudancaDeNivel(bot, 2, 3))));
+        assertThat(partida.getHistorico()).containsExactly(jogada.jogada());
         assertThat(partida.getOponentes().getFirst().getMao()).isEmpty();
         assertThat(partida.getDescarte(TipoDeCarta.TESOURO)).containsExactly(carta("d"));
     }

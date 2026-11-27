@@ -13,7 +13,7 @@ import java.util.List;
 
 /**
  * Cartas jogadas em texto, do ponto de vista do jogador da tela ("Você usou...", "...em você").
- * É o aviso que aparece logo depois da jogada.
+ * O mesmo texto vai no aviso que aparece logo depois da jogada e no histórico da mesa.
  * Ex.: "Bot 1 usou Roubar 1 nivel em você: subiu do nível 0 para o 1 e você desceu do nível 0 para o -1."
  */
 @Component
@@ -26,6 +26,15 @@ public class JogadaDeCartaDtoMapper {
         String alvo = jogada.alvo() == null ? "" : " em " + quem(jogada.alvo(), "você");
         return quem(jogada.quem(), "Você") + " usou " + cartaDtoMapper.nome(jogada.carta()) + alvo + ": "
                 + juntar(jogada.efeitos().stream().map(efeito -> efeito(jogada, efeito)).toList()) + ".";
+    }
+
+    /** O histórico com a última jogada primeiro. */
+    public List<JogadaDto> historico(List<JogadaDeCarta> jogadas) {
+        return jogadas.reversed().stream()
+                .map(jogada -> new JogadaDto(jogada.rodada(), quem(jogada.quem(), "Você"), aviso(jogada),
+                        cartaDtoMapper.nome(jogada.carta()),
+                        cartaDtoMapper.paraDto(jogada.carta()).imagem()))
+                .toList();
     }
 
     /** O efeito de quem jogou vai sem sujeito ("subiu..."); o dos outros, com ("Bot 2 desceu..."). */
