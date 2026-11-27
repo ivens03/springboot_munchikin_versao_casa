@@ -177,6 +177,18 @@ public class PartidaService {
         return new MudancaDeNivel(jogador, antes, jogador.getMunchkin().getNivel());
     }
 
+    /**
+     * TEMPORÁRIO, só para testar cenários (painel de cartas de teste): põe uma carta do catálogo no fim da mão
+     * do jogador. Não sai do baralho, então pode repetir carta que já está em outra mão.
+     */
+    public Carta darCartaDeTesteAoJogador(UUID id, String caminho) {
+        Partida partida = buscar(id);
+        Carta carta = baralhoService.buscar(caminho);
+        partida.getJogador().getMao().add(carta);
+        partidaRepository.salvar(partida);
+        return carta;
+    }
+
     /** O que a carta de nível precisa saber da mesa, do ponto de vista de quem vai usar. */
     private static SituacaoDoJogador situacaoDe(Partida partida, JogadorDaPartida jogador) {
         return new SituacaoDoJogador(jogador.getMunchkin().getNivel(), niveis(outros(partida, jogador)),

@@ -840,3 +840,75 @@ html, body {
     border-radius: 0.8rem;
     animation: sumir-rodada 0.6s ease 6s forwards;
 }
+
+/* ---------- TEMPORÁRIO: painel de cartas de teste (jogo.teste.cartas=true) ---------- */
+.teste {
+    position: absolute;
+    top: 0.6rem;
+    left: 0.6rem;
+    z-index: 40;
+    font: 0.9rem Georgia, "Times New Roman", serif;
+    color: #f6e3b4;
+}
+
+.teste__botao {
+    width: fit-content;
+    padding: 0.3rem 0.8rem;
+    list-style: none;
+    color: #1d120a;
+    background: #7fc6a4;
+    border: 1px dashed #1d120a;
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.teste__botao::-webkit-details-marker {
+    display: none;
+}
+
+.teste__painel {
+    width: min(60rem, calc(100vw - 1.2rem));
+    max-height: 80vh;
+    margin-top: 0.4rem;
+    padding: 0.6rem;
+    overflow: auto;
+    background: rgba(20, 13, 7, 0.97);
+    border: 1px solid #7fc6a4;
+    border-radius: 0.6rem;
+}
+
+.teste__grupo summary {
+    padding: 0.25rem 0.2rem;
+    cursor: pointer;
+}
+
+.teste__grupo[open] summary {
+    color: #7fc6a4;
+}
+
+.teste__cartas {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+    gap: 0.4rem;
+    padding: 0.4rem 0 0.8rem;
+}
+
+.teste__carta {
+    padding: 0;
+    background: none;
+    border: 2px solid transparent;
+    border-radius: 0.4rem;
+    cursor: pointer;
+}
+
+.teste__carta:hover,
+.teste__carta:focus-visible {
+    border-color: #7fc6a4;
+}
+
+.teste__carta img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 0.3rem;
+}

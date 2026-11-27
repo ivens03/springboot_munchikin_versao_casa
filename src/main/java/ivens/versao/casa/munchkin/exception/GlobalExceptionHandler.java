@@ -1,5 +1,6 @@
 package ivens.versao.casa.munchkin.exception;
 
+import ivens.versao.casa.munchkin.carta.exception.CartaNaoEncontradaException;
 import ivens.versao.casa.munchkin.carta.exception.UsoDeCartaNaoPermitidoException;
 import ivens.versao.casa.munchkin.jogo.exception.NivelDeVitoriaInvalidoException;
 import ivens.versao.casa.munchkin.munchkin.exception.VendaDeOuroNaoPermitidaException;
@@ -30,8 +31,8 @@ public class GlobalExceptionHandler {
         resposta.sendError(HttpStatus.BAD_REQUEST.value(), excecao.getMessage());
     }
 
-    /** Link de uma partida que não existe (ou que sumiu porque a aplicação reiniciou). */
-    @ExceptionHandler(PartidaNaoEncontradaException.class)
+    /** Link de uma partida que não existe (ou que sumiu porque a aplicação reiniciou), ou carta fora do catálogo. */
+    @ExceptionHandler({PartidaNaoEncontradaException.class, CartaNaoEncontradaException.class})
     public void naoEncontrado(RuntimeException excecao, HttpServletResponse resposta) throws IOException {
         resposta.sendError(HttpStatus.NOT_FOUND.value(), excecao.getMessage());
     }

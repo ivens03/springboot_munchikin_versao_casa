@@ -355,6 +355,17 @@ class JogarComMaquinaWebTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    void semJogoTesteCartasNaoTemPainelNemEndpointDeCartaDeTeste() throws Exception {
+        mesaDepoisDaPreparacao();
+
+        mockMvc.perform(get(urlDaMesa))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("Pegar carta (teste)"))));
+        mockMvc.perform(post(urlDaMesa + "/teste/pegar-carta").param("caminho", "tesouro/x.jpg"))
+                .andExpect(status().isNotFound());
+    }
+
     /** Partida na rodada 1, com os mappers devolvendo o mínimo para a página renderizar. */
     private void mesaDepoisDaPreparacao() {
         when(partidaService.buscar(partida.getId())).thenReturn(partida);

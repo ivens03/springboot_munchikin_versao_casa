@@ -161,6 +161,28 @@
 </p>
 
 <!--
+  TEMPORÁRIO, só para testar cenários (jogo.teste.cartas=true): botão no canto que abre o catálogo separado por
+  pilha e pasta; clicar numa carta põe ela na mão do jogador. grupoAberto: o painel reabre no grupo da última
+  carta pega. Sem catálogo (desligado) não aparece nada.
+-->
+<details th:fragment="cartasDeTeste(grupos, acao, grupoAberto)" th:if="${grupos}" class="teste"
+         th:open="${grupoAberto != null}">
+    <summary class="teste__botao">Pegar carta (teste)</summary>
+    <form class="teste__painel" method="post" th:action="${acao}">
+        <details class="teste__grupo" name="grupo-de-teste" th:each="grupo : ${grupos}"
+                 th:open="${grupo.nome == grupoAberto}">
+            <summary th:text="|${grupo.nome} (${#lists.size(grupo.cartas)})|">Tesouro · Suba de nivel (34)</summary>
+            <div class="teste__cartas">
+                <button th:each="carta : ${grupo.cartas}" class="teste__carta" type="submit" name="caminho"
+                        th:value="${carta.caminho}" th:title="${carta.nome}">
+                    <img th:src="@{${carta.imagem}}" th:alt="${carta.nome}" loading="lazy">
+                </button>
+            </div>
+        </details>
+    </form>
+</details>
+
+<!--
   Oponentes sentados em volta da mesa, virados para o centro, com as cartas de costas.
   As mãos são as de costas (dorso da mão), com os dedos por cima dos versos.
   Passando o mouse (ou o foco) na mão, aparece o nível, o ouro e quantas cartas ele tem, sem mostrar quais.

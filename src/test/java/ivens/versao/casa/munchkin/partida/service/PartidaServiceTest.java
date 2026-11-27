@@ -349,6 +349,17 @@ class PartidaServiceTest {
     }
 
     @Test
+    void cartaDeTesteVaiParaOFimDaMaoDoJogador() {
+        Partida partida = partidaService.criarComMaquina(2, TipoDeVitoria.CLASSICA, null);
+        Carta pizza = new Carta(TipoDeCarta.TESOURO, "tesouro/3_suba_de_nivel/pagar_a_pizza_tesouro.jpg");
+        when(baralhoService.buscar(pizza.imagem())).thenReturn(pizza);
+
+        assertThat(partidaService.darCartaDeTesteAoJogador(partida.getId(), pizza.imagem())).isEqualTo(pizza);
+        assertThat(partida.getJogador().getMao()).containsExactly(carta("a"), carta("b"), carta("c"), pizza);
+        assertThat(partida.getOponentes()).extracting(JogadorDaPartida::getMao).containsExactly(maoDoBot1, maoDoBot2);
+    }
+
+    @Test
     void partidaQueNaoExisteNaoEEncontrada() {
         UUID id = UUID.randomUUID();
 

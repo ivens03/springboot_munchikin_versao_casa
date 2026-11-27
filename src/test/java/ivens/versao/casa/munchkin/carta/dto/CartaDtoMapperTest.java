@@ -73,4 +73,31 @@ class CartaDtoMapperTest {
 
         assertThat(dtos).extracting(CartaDto::nome).containsExactly("Espada", "Elfo");
     }
+
+    @Test
+    void catalogoSeparadoPorPilhaEPastaNaOrdemDasPastasSemRepetirCopia() {
+        List<Carta> cartas = List.of(
+                new Carta(TipoDeCarta.TESOURO, "tesouro/3_suba_de_nivel/pagar_a_pizza_tesouro.jpg"),
+                new Carta(TipoDeCarta.MASMORRA, "masmorra/10_especiais/x_masmorra.jpg"),
+                new Carta(TipoDeCarta.MASMORRA, "masmorra/5_racas/elfo_masmorra.jpg"),
+                new Carta(TipoDeCarta.MASMORRA, "masmorra/5_racas/elfo_2_masmorra.jpg"),
+                new Carta(TipoDeCarta.TESOURO, "tesouro/3_suba_de_nivel/1000_pecas_de_ouro_tesouro.jpg"));
+
+        List<GrupoDeCartasDto> grupos = mapper.paraGrupos(cartas);
+
+        assertThat(grupos).extracting(GrupoDeCartasDto::nome)
+                .containsExactly("Masmorra · Racas", "Masmorra · Especiais", "Tesouro · Suba de nivel");
+        assertThat(grupos.get(0).cartas()).containsExactly(new CartaDoCatalogoDto("masmorra/5_racas/elfo_masmorra.jpg",
+                "Elfo", "/img/cartas/masmorra/5_racas/elfo_masmorra.jpg"));
+        assertThat(grupos.get(2).cartas()).extracting(CartaDoCatalogoDto::nome)
+                .containsExactly("1000 pecas de ouro", "Pagar a pizza");
+    }
+
+    @Test
+    void nomeDoGrupoSemONumeroDaPasta() {
+        assertThat(mapper.nomeDoGrupo(new Carta(TipoDeCarta.TESOURO, "tesouro/3_suba_de_nivel/x_tesouro.jpg")))
+                .isEqualTo("Tesouro · Suba de nivel");
+        assertThat(mapper.nomeDoGrupo(new Carta(TipoDeCarta.TESOURO, "tesouro/x_tesouro.jpg")))
+                .isEqualTo("Tesouro · Outras");
+    }
 }

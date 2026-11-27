@@ -1,5 +1,6 @@
 package ivens.versao.casa.munchkin.carta.service;
 
+import ivens.versao.casa.munchkin.carta.exception.CartaNaoEncontradaException;
 import ivens.versao.casa.munchkin.carta.exception.CartasInsuficientesException;
 import ivens.versao.casa.munchkin.carta.model.Carta;
 import ivens.versao.casa.munchkin.carta.model.TipoDeCarta;
@@ -9,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static ivens.versao.casa.munchkin.jogo.service.RegrasBasicas.CARTAS_INICIAIS_DE_MASMORRA;
@@ -39,6 +41,19 @@ public class BaralhoService {
             maos.add(mao);
         }
         return maos;
+    }
+
+    /** Todas as cartas do catálogo, Masmorra e depois Tesouro (cada cópia é uma carta). */
+    public List<Carta> todasAsCartas() {
+        return Arrays.stream(TipoDeCarta.values()).flatMap(tipo -> cartaRepository.listar(tipo).stream()).toList();
+    }
+
+    /** A carta do catálogo com essa imagem (ex.: "tesouro/3_suba_de_nivel/pagar_a_pizza_tesouro.jpg"). */
+    public Carta buscar(String caminho) {
+        return todasAsCartas().stream()
+                .filter(carta -> carta.imagem().equals(caminho))
+                .findFirst()
+                .orElseThrow(() -> new CartaNaoEncontradaException(caminho));
     }
 
     private List<Carta> comprar(TipoDeCarta tipo, int quantidade) {

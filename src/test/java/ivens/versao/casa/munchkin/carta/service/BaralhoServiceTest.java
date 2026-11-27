@@ -1,5 +1,6 @@
 package ivens.versao.casa.munchkin.carta.service;
 
+import ivens.versao.casa.munchkin.carta.exception.CartaNaoEncontradaException;
 import ivens.versao.casa.munchkin.carta.exception.CartasInsuficientesException;
 import ivens.versao.casa.munchkin.carta.model.Carta;
 import ivens.versao.casa.munchkin.carta.model.TipoDeCarta;
@@ -37,6 +38,25 @@ class BaralhoServiceTest {
         return IntStream.rangeClosed(1, quantidade)
                 .mapToObj(n -> new Carta(tipo, tipo.getPasta() + "/carta_" + n + ".jpg"))
                 .toList();
+    }
+
+    @Test
+    void catalogoTemMasmorraEDepoisTesouro() {
+        when(cartaRepository.listar(TipoDeCarta.TESOURO)).thenReturn(baralho(TipoDeCarta.TESOURO, 2));
+        when(cartaRepository.listar(TipoDeCarta.MASMORRA)).thenReturn(baralho(TipoDeCarta.MASMORRA, 1));
+
+        assertThat(baralhoService.todasAsCartas()).containsExactly(new Carta(TipoDeCarta.MASMORRA, "masmorra/carta_1.jpg"),
+                new Carta(TipoDeCarta.TESOURO, "tesouro/carta_1.jpg"), new Carta(TipoDeCarta.TESOURO, "tesouro/carta_2.jpg"));
+    }
+
+    @Test
+    void buscaACartaDoCatalogoPelaImagem() {
+        when(cartaRepository.listar(TipoDeCarta.TESOURO)).thenReturn(baralho(TipoDeCarta.TESOURO, 2));
+        when(cartaRepository.listar(TipoDeCarta.MASMORRA)).thenReturn(baralho(TipoDeCarta.MASMORRA, 1));
+
+        assertThat(baralhoService.buscar("tesouro/carta_2.jpg")).isEqualTo(new Carta(TipoDeCarta.TESOURO, "tesouro/carta_2.jpg"));
+        assertThatThrownBy(() -> baralhoService.buscar("tesouro/nao_existe.jpg"))
+                .isInstanceOf(CartaNaoEncontradaException.class);
     }
 
     @Test

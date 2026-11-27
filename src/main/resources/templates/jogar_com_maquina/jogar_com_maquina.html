@@ -19,6 +19,8 @@
     <p th:replace="~{mesa/mesa :: aviso(${aviso})}"></p>
     <th:block th:replace="~{mesa/mesa :: usoDeCarta(${oponentes}, ${opcoesDeUso},
             @{/jogar-com-maquina/{id}/usar-carta(id=${partidaId})})}"></th:block>
+    <details th:replace="~{mesa/mesa :: cartasDeTeste(${cartasDeTeste},
+            @{/jogar-com-maquina/{id}/teste/pegar-carta(id=${partidaId})}, ${grupoDeTeste})}"></details>
     <th:block th:replace="~{mesa/mesa :: maoDoJogador(${jogador}, ${mao}, ${usos},
             @{/jogar-com-maquina/{id}/mao(id=${partidaId})})}"></th:block>
 </main>
