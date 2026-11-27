@@ -841,6 +841,31 @@ html, body {
     animation: sumir-rodada 0.6s ease 6s forwards;
 }
 
+/*
+ * ---------- "Olha se eu quiser": o inimigo puxa uma carta (de costas) para o centro da mesa e recolhe ----------
+ * O assento já é girado para o centro, então "para cima" no assento é para o centro. Quem dispara é o provocar.js.
+ * Sem animação (prefers-reduced-motion) não provoca.
+ */
+.oponente__cartas .carta--provocando {
+    z-index: 3;
+    animation: provocar 2.6s ease-in-out;
+}
+
+@keyframes provocar {
+    0%, 100% {
+        translate: 0 0;
+    }
+    25%, 45% {
+        translate: 0 calc(-1.15 * var(--altura-carta));
+    }
+    35% {
+        translate: 0 calc(-0.95 * var(--altura-carta));
+    }
+    60% {
+        translate: 0 calc(-1.3 * var(--altura-carta));
+    }
+}
+
 /* ---------- TEMPORÁRIO: painel de cartas de teste (jogo.teste.cartas=true) ---------- */
 .teste {
     position: absolute;
