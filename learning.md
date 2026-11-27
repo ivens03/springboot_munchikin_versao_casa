@@ -53,7 +53,8 @@ e registrar aqui cada regra ou decisão nova.
   Reencarnar sem Morrer (procurar Raça/Classe/Poder/Mojo nos descartes) e Gesto de Carinho (pegar Item).
 - **Ainda não usáveis** (dependem do que não existe): Há Males que Vêm para o Bem (Escudeiro/Montaria),
   Levar a Fama e Mutilar os Cadáveres (combate), Matar o Escudeiro (Escudeiro).
-- Carta usada vai para o descarte da pilha dela (na partida, em memória).
+- Carta usada vai para o descarte da pilha dela (na partida, em memória). Com Contemplar (+2), a mão vai antes e a
+  carta jogada por último: ela fica no topo do descarte.
 
 ### Bots usando cartas de nível (decidido com o usuário)
 - **Quando**: aos poucos na rodada 0. A cada 5–12 s a mesa pergunta ao servidor; um bot sorteado, entre os que têm
@@ -74,6 +75,9 @@ e registrar aqui cada regra ou decisão nova.
 ## Telas (o que já foi combinado)
 - **Pilhas** no lado esquerdo: Dungeon em pé; Masmorra em cima e Tesouro embaixo.
 - **Placar dos inimigos** no lado direito: nome e nível de cada um, sempre à vista.
+- **Retrato de cada jogador** (histórico): o miolo do desenho de uma carta de personagem (Raça ou Classe, uma de cada,
+  `BaralhoService.cartasDePersonagem`), sorteado pelo Embaralhador ao criar a partida, sem repetir enquanto der.
+  Guardado no `JogadorDaPartida`. Recorte por CSS (`object-view-box`). Dá para trocar depois por retratos próprios.
 - **Infos do jogador** embaixo das próprias cartas, só com o mouse no leque (sobem com a mão):
   `Nome · Raça · Nível atual · Poder de combate · Ouro` e, quando puder, o botão de vender 1000 de ouro.
 - **Inimigo**: mouse no assento mostra nome, nível, ouro e quantas cartas (de cada pilha) ele tem.
@@ -81,20 +85,34 @@ e registrar aqui cada regra ou decisão nova.
 - **Painel da rodada 0** no centro da mesa, com o OK.
 - **Usar carta**: arrastar a carta do leque para cima, até a mesa (aparece "Solte aqui para usar a carta").
   Soltando lá: carta com **uma opção só é jogada direto**, sem confirmação. A janela só abre quando há escolha
-  (Contemplar: +1 ou +2; Roubar: de quem) ou para **explicar por que não pode**. Depois de usar, um aviso diz
-  o que a carta fez e some em ~6 s.
+  (Contemplar: +1 ou +2; Roubar: de quem) ou para **explicar por que não pode**.
+- **Carta jogada na mesa** (de qualquer um, para todos entenderem o que rolou; `static/js/mesa/jogada_na_mesa.js`):
+  a carta sai de quem jogou (assento do bot, ou a mão do jogador) e vai para o centro; parada lá (~4 s), aparece à
+  direita dela o texto ("Bot 1 usou Roubar 1 nivel em você: ...") e, **em cima de cada um que mudou**, um selo
+  ("Nível 0 → 1" verde, "Nível 0 → -1" vermelho, "Descartou N cartas" dourado); a linha do placar dele pisca e,
+  se mudou o jogador da tela, as infos dele aparecem (sem a mão subir). Depois a carta **voa para o descarte**
+  dela, que até ali mostrava a carta de baixo e a contagem de antes. Vem por flash (`jogada`, `JogadaNaMesaDto`)
+  logo depois da jogada. Sem animação: carta, texto e selos ficam parados ~6 s e somem. Substituiu o aviso de texto.
+- **Pilhas de descarte**: embaixo do placar (lado direito), **montadas como as pilhas de compra**: Dungeon em pé
+  ocupando as duas linhas; ao lado, Masmorra em cima e Tesouro embaixo, deitadas. Carta do topo para cima, a pilha
+  engrossa com a quantidade, e um selo com quantas tem (vazia: tracejada com o nome). Clicar abre a janela com todas,
+  a do topo primeiro; **clicar numa carta da janela põe ela em foco**, grande, para ler (clicar de novo ou Esc volta
+  para a janela) — `descartes.js`. Dungeon ainda não tem cartas no catálogo: o descarte dela fica vazio.
 - **Histórico das cartas jogadas**: coluna **vertical no canto de baixo, à esquerda** (ao lado da mão esquerda do
   jogador; é o único canto livre com 1 a 10 bots), com 11 quadrados. Do 1º ao 10º, as últimas 10 jogadas, a última
   em cima (miniatura da carta + quem jogou; vaga sem jogada fica tracejada); embaixo, o "Tudo".
-  Mouse num quadrado mostra, ao lado, a rodada e o que fez ("Bot 1 usou Roubar 1 nivel em você: subiu do nível 0 para o 1 e
-  você desceu do nível 0 para o -1."). O 11º ("Tudo") abre o histórico completo quase em tela cheia quando o mouse
+  Mouse num quadrado mostra, ao lado, a jogada **em imagens, como no Hearthstone** (fragmento `lance`): retrato de
+  quem jogou → a carta → retrato de quem foi afetado, cada um com o nome e os selos ("Nível 0 → 1" verde,
+  "Nível 0 → -1" vermelho, "Descartou N cartas" dourado). O texto ("Bot 1 usou...") fica só para o leitor de tela.
+  O histórico completo usa o mesmo desenho, menor. O 11º ("Tudo") abre o histórico completo quase em tela cheia quando o mouse
   **fica parado** em cima (~0,4 s; passar rápido não abre) e fecha quando o mouse sai do painel.
-  O aviso depois da jogada usa o mesmo texto. Com o histórico completo aberto, a mesa não recarrega.
+  A carta jogada na mesa usa o mesmo texto. Com o histórico completo aberto, a mesa não recarrega.
   Na partida: `Partida.getHistorico()` (`JogadaDeCarta`); cada efeito é um record de `EfeitoDaJogada`
   (`MudancaDeNivel`, `MaoDescartada`), guardado com o valor da hora. O combate vai somar os efeitos dele ali.
-- **Bot jogando**: o bot puxa a carta para o centro, a mesa recarrega e o aviso diz o que ele fez ("Bot 2 usou...",
-  "...e você desceu para o nível -1"). Não pergunta nem recarrega enquanto o jogador arrasta carta, está com a
-  janela de uso ou o painel de teste aberto (`static/js/jogar_com_maquina/bots_jogam.js`).
+- **Bot jogando**: o bot puxa a carta para o centro, a mesa recarrega e a carta jogada aparece saindo do assento
+  dele (ver "Carta jogada na mesa"). Não pergunta nem recarrega enquanto a carta jogada ainda está na mesa, o
+  jogador arrasta carta ou está com a janela de uso, um descarte, o histórico ou o painel de teste aberto
+  (`static/js/jogar_com_maquina/bots_jogam.js`).
 - **"Olha se eu quiser"**: o inimigo puxa uma carta (de costas) em direção ao centro e recolhe, sem mostrar qual.
   Peça da mesa: `mesaProvocar(oponente, carta)` (`static/js/mesa/provocar.js`). Com a máquina, os bots fazem isso
   sozinhos a cada 5–12 s (`static/js/jogar_com_maquina/bots_provocam.js`, sorteio visual com Math.random, não é
@@ -127,6 +145,10 @@ e registrar aqui cada regra ou decisão nova.
 - Nome da carta vem do arquivo, sem acento ("Roubar 1 nivel", "Pocao..."): melhorar quando houver catálogo com nome.
 
 ## Aprendizados de trabalho
+
+- Teste de tela: o `Embaralhador` com semente é um só para a aplicação; qualquer sorteio novo na criação da partida
+  (ex.: retratos) muda as cartas das partidas criadas depois no mesmo teste. É determinístico: atualizar a base.
+- Teste de tela não pega painel escuro sobre fundo escuro (diferença de cor abaixo do limite por pixel).
 - Respostas curtas, em português; perguntar quando a regra for ambígua e dizer qual leitura foi usada.
 - Tela nova ou alterada: validar no Playwright em **1280×720** (a janela às vezes volta para 1920) e só depois
   atualizar a imagem base (`./mvnw test -Dtelas.atualizar=true`).

@@ -64,5 +64,5 @@ em aberto para pensar com calma. Decisão tomada aqui também vai para o `learni
 
 ### Mesa e tela
 
-16. Mostrar no aviso o motivo da escolha do bot (ex.: "roubou de você porque você está na frente")?
-17. Guardar um histórico das jogadas dos bots na mesa (hoje só o último aviso aparece)?
+16. Mostrar no texto da carta jogada o motivo da escolha do bot (ex.: "roubou de você porque você está na frente")?
+17. ~~Guardar um histórico das jogadas dos bots na mesa~~: feito (histórico no canto de baixo, à esquerda).
