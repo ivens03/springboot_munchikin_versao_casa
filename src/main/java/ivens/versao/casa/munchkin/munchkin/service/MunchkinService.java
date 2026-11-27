@@ -1,6 +1,7 @@
 package ivens.versao.casa.munchkin.munchkin.service;
 
 import ivens.versao.casa.munchkin.munchkin.exception.MunchkinNaoEncontradoException;
+import ivens.versao.casa.munchkin.munchkin.exception.VendaDeOuroNaoPermitidaException;
 import ivens.versao.casa.munchkin.munchkin.model.Munchkin;
 import ivens.versao.casa.munchkin.munchkin.repository.MunchkinRepository;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.IntStream;
 
+import static ivens.versao.casa.munchkin.jogo.service.RegrasBasicas.OURO_POR_NIVEL;
 import static ivens.versao.casa.munchkin.jogo.service.RegrasBasicas.PODER_DE_COMBATE_INICIAL;
 
 @Service
@@ -40,6 +42,30 @@ public class MunchkinService {
      */
     public int poderDeCombate(Munchkin munchkin) {
         return PODER_DE_COMBATE_INICIAL + munchkin.getNivel();
+    }
+
+    /**
+     * Vender ouro por nível (regra da casa): 1000 de ouro valem 1 nível, quantas vezes o ouro der.
+     * Não vale para o nível da vitória: esse só vem matando monstro (como no Munchkin original).
+     */
+    public boolean podeVenderOuroPorNivel(Munchkin munchkin, int nivelDeVitoria) {
+        return munchkin.getOuro() >= OURO_POR_NIVEL && munchkin.getNivel() + 1 < nivelDeVitoria;
+    }
+
+    /** Troca 1000 de ouro por 1 nível. */
+    public Munchkin venderOuroPorNivel(Munchkin munchkin, int nivelDeVitoria) {
+        if (!podeVenderOuroPorNivel(munchkin, nivelDeVitoria)) {
+            throw new VendaDeOuroNaoPermitidaException(munchkin.getNome(), munchkin.getOuro(), munchkin.getNivel(),
+                    nivelDeVitoria);
+        }
+        munchkin.setOuro(munchkin.getOuro() - OURO_POR_NIVEL);
+        return mudarNivel(munchkin, 1);
+    }
+
+    /** Sobe (niveis positivo) ou desce (negativo). O nível pode ficar negativo, sem limite (regra da casa). */
+    public Munchkin mudarNivel(Munchkin munchkin, int niveis) {
+        munchkin.setNivel(munchkin.getNivel() + niveis);
+        return munchkin;
     }
 
     @Transactional

@@ -14,7 +14,8 @@
             @{/jogar-com-maquina/{id}/pronto(id=${partidaId})}, ${comecou})}"></section>
     <ol th:replace="~{mesa/mesa :: oponentes(${oponentes})}"></ol>
     <section th:replace="~{mesa/mesa :: placar(${oponentes})}"></section>
-    <dl th:replace="~{mesa/mesa :: infoDoJogador(${jogador})}"></dl>
+    <dl th:replace="~{mesa/mesa :: infoDoJogador(${jogador}, ${podeVenderOuro},
+            @{/jogar-com-maquina/{id}/vender-ouro(id=${partidaId})})}"></dl>
     <th:block th:replace="~{mesa/mesa :: maoDoJogador(${jogador}, ${mao},
             @{/jogar-com-maquina/{id}/mao(id=${partidaId})})}"></th:block>
 </main>

@@ -7,6 +7,7 @@ import ivens.versao.casa.munchkin.jogo.model.Vitoria;
 import ivens.versao.casa.munchkin.jogo.service.VitoriaService;
 import ivens.versao.casa.munchkin.munchkin.model.Munchkin;
 import ivens.versao.casa.munchkin.munchkin.service.MunchkinService;
+import ivens.versao.casa.munchkin.partida.exception.ForaDaHoraDeVenderOuroException;
 import ivens.versao.casa.munchkin.partida.exception.OrdemDaMaoInvalidaException;
 import ivens.versao.casa.munchkin.partida.exception.PartidaNaoEncontradaException;
 import ivens.versao.casa.munchkin.partida.model.JogadorDaPartida;
@@ -73,6 +74,30 @@ public class PartidaService {
         if (emPreparacao(partida) && partida.getJogadores().stream().allMatch(JogadorDaPartida::isPronto)) {
             partida.setRodada(RODADA_DE_PREPARACAO + 1);
         }
+        return partidaRepository.salvar(partida);
+    }
+
+    /**
+     * Hora de vender ouro por nível (regra da casa): na preparação e na vez do jogador.
+     * Ainda não existe turno, então por enquanto só a preparação libera.
+     */
+    public boolean horaDeVenderOuro(Partida partida) {
+        return emPreparacao(partida);
+    }
+
+    /** O botão de vender só aparece quando é a hora e o MunchkinService deixa (ouro e nível da vitória). */
+    public boolean jogadorPodeVenderOuro(Partida partida) {
+        return horaDeVenderOuro(partida)
+                && munchkinService.podeVenderOuroPorNivel(partida.getJogador().getMunchkin(), partida.getVitoria().nivel());
+    }
+
+    /** O jogador troca 1000 de ouro por 1 nível. */
+    public Partida venderOuroPorNivel(UUID id) {
+        Partida partida = buscar(id);
+        if (!horaDeVenderOuro(partida)) {
+            throw new ForaDaHoraDeVenderOuroException(partida.getRodada());
+        }
+        munchkinService.venderOuroPorNivel(partida.getJogador().getMunchkin(), partida.getVitoria().nivel());
         return partidaRepository.salvar(partida);
     }
 

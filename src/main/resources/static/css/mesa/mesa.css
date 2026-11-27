@@ -41,10 +41,12 @@ html, body {
 }
 
 /*
- * a mão sobe com o mouse no leque; continua em cima enquanto arrasta uma carta
+ * a mão sobe com o mouse no leque; continua em cima enquanto arrasta uma carta ou com o mouse
+ * no botão das infos
  */
 .mesa:has(.mao:hover),
-.mesa:has(.carta--arrastando) {
+.mesa:has(.carta--arrastando),
+.mesa:has(.jogador__vender:hover) {
     --descida-da-mao: 8vh;
 }
 
@@ -235,7 +237,8 @@ html, body {
 }
 
 .mesa:has(.mao:hover) .jogador,
-.mesa:has(.carta--arrastando) .jogador {
+.mesa:has(.carta--arrastando) .jogador,
+.mesa:has(.jogador__vender:hover) .jogador {
     --descida-das-informacoes: 0%;
     opacity: 1;
     visibility: visible;
@@ -249,6 +252,26 @@ html, body {
 .jogador__dado dd {
     font-weight: bold;
     color: #d9a63a;
+}
+
+/* o botão pega o mouse (o resto das infos não); com o mouse nele a mão continua em cima */
+.jogador__vender {
+    pointer-events: auto;
+}
+
+.jogador__vender button {
+    padding: 0 0.8rem;
+    font: bold 0.85rem Georgia, "Times New Roman", serif;
+    color: #1d120a;
+    background: #d9a63a;
+    border: 1px solid #f6e3b4;
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.jogador__vender button:hover,
+.jogador__vender button:focus-visible {
+    background: #f2c35a;
 }
 
 /*
@@ -586,6 +609,11 @@ html, body {
 .oponente__nivel {
     font-weight: bold;
     color: #d9a63a;
+}
+
+.oponente__ouro {
+    font-size: 0.85rem;
+    color: #f2d36b;
 }
 
 .oponente__pilha {

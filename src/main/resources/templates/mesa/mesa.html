@@ -52,8 +52,9 @@
 
 <!--
   Informações do jogador, embaixo das próprias cartas: sobem junto com a mão (mouse no leque).
+  Com 1000 de ouro (e na hora certa) aparece o botão de vender 1000 de ouro por 1 nível (acaoVender).
 -->
-<dl th:fragment="infoDoJogador(jogador)" class="jogador">
+<dl th:fragment="infoDoJogador(jogador, podeVenderOuro, acaoVender)" class="jogador">
     <div class="jogador__dado">
         <dt>Nome:</dt>
         <dd th:text="${jogador.nome}">Jogador</dd>
@@ -70,6 +71,13 @@
         <dt>Poder de combate:</dt>
         <dd th:text="${jogador.poderDeCombate}">0</dd>
     </div>
+    <div class="jogador__dado">
+        <dt>Ouro:</dt>
+        <dd th:text="${jogador.ouro}">400</dd>
+    </div>
+    <form th:if="${podeVenderOuro}" class="jogador__vender" method="post" th:action="${acaoVender}">
+        <button type="submit">Vender 1000 de ouro (+1 nível)</button>
+    </form>
 </dl>
 
 <!-- placar dos inimigos: nome e nível de cada um, na ordem em que estão sentados -->
@@ -113,13 +121,13 @@
 <!--
   Oponentes sentados em volta da mesa, virados para o centro, com as cartas de costas.
   As mãos são as de costas (dorso da mão), com os dedos por cima dos versos.
-  Passando o mouse (ou o foco) na mão, aparece o nível dele e quantas cartas ele tem, sem mostrar quais.
+  Passando o mouse (ou o foco) na mão, aparece o nível, o ouro e quantas cartas ele tem, sem mostrar quais.
 -->
 <ol th:fragment="oponentes(oponentes)" class="oponentes" aria-label="Oponentes"
     th:style="|--bots: ${#lists.size(oponentes)}|">
     <li class="oponente" th:each="oponente, posicao : ${oponentes}" th:style="|--i: ${posicao.index}|"
         tabindex="0"
-        th:aria-label="|${oponente.munchkin.nome}, nível ${oponente.munchkin.nivel}: ${oponente.mao.total} cartas na mão, ${oponente.mao.cartasDeMasmorra} de Masmorra e ${oponente.mao.cartasDeTesouro} de Tesouro|">
+        th:aria-label="|${oponente.munchkin.nome}, nível ${oponente.munchkin.nivel}, ${oponente.munchkin.ouro} de ouro: ${oponente.mao.total} cartas na mão, ${oponente.mao.cartasDeMasmorra} de Masmorra e ${oponente.mao.cartasDeTesouro} de Tesouro|">
         <div class="oponente__assento">
             <img class="oponente__mao oponente__mao--esquerda"
                  th:src="@{${oponente.munchkin.imagemDasCostasDaMaoEsquerda}}" alt="">
@@ -137,6 +145,7 @@
         <p class="oponente__contagem" aria-hidden="true">
             <strong class="oponente__nome" th:text="${oponente.munchkin.nome}">Bot 1</strong>
             <span class="oponente__nivel" th:text="|Nível ${oponente.munchkin.nivel}|">Nível 0</span>
+            <span class="oponente__ouro" th:text="|Ouro: ${oponente.munchkin.ouro}|">Ouro: 400</span>
             <span th:text="|${oponente.mao.total} cartas na mão|">10 cartas na mão</span>
             <span class="oponente__pilha oponente__pilha--masmorra"
                   th:text="|${oponente.mao.cartasDeMasmorra} de Masmorra|">5 de Masmorra</span>

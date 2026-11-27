@@ -7,7 +7,7 @@ public final class RegrasBasicas {
 
     public static final int LIMITE_DE_CARTAS_NA_MAO = 5;
 
-    /** Regra da casa: todo Munchkin começa no nível 0. */
+    /** Regra da casa: todo Munchkin começa no nível 0. O nível pode ficar negativo, sem limite. */
     public static final int NIVEL_INICIAL = 0;
 
     /**
@@ -15,6 +15,12 @@ public final class RegrasBasicas {
      * não se joga e não vale limite de cartas nem descarte. Termina quando todos dão OK.
      */
     public static final int RODADA_DE_PREPARACAO = 0;
+
+    /** Regra da casa: todo Munchkin começa a partida com 400 de ouro. */
+    public static final int OURO_INICIAL = 400;
+
+    /** Regra da casa: 1000 de ouro podem ser vendidos em troca de 1 nível (nunca o nível da vitória). */
+    public static final int OURO_POR_NIVEL = 1000;
 
     /** Regra da casa: o Poder de Combate começa em 0 e o nível do Munchkin soma nele. */
     public static final int PODER_DE_COMBATE_INICIAL = 0;

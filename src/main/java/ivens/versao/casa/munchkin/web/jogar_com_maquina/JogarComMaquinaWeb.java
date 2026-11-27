@@ -67,6 +67,7 @@ public class JogarComMaquinaWeb {
         model.addAttribute("rodada", rodadaDtoMapper.paraDto(partida, partidaService.emPreparacao(partida)));
         model.addAttribute("vitoria", vitoriaDtoMapper.paraDto(partida.getVitoria()));
         model.addAttribute("jogador", paraDto(partida.getJogador().getMunchkin()));
+        model.addAttribute("podeVenderOuro", partidaService.jogadorPodeVenderOuro(partida));
         model.addAttribute("mao", cartaDtoMapper.paraDto(partida.getJogador().getMao()));
         model.addAttribute("oponentes", partida.getOponentes().stream()
                 .map(oponente -> new OponenteDto(paraDto(oponente.getMunchkin()),
@@ -85,6 +86,13 @@ public class JogarComMaquinaWeb {
         if (!partidaService.emPreparacao(partida)) {
             redirecionamento.addFlashAttribute("comecou", true);
         }
+        return MESA + id;
+    }
+
+    /** Vende 1000 de ouro por 1 nível. */
+    @PostMapping("/{id}/vender-ouro")
+    public String venderOuro(@PathVariable UUID id) {
+        partidaService.venderOuroPorNivel(id);
         return MESA + id;
     }
 

@@ -5,6 +5,7 @@ import ivens.versao.casa.munchkin.munchkin.service.raca.regrasRacas.RegraOrc;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -17,10 +18,11 @@ class RegraOrcTest {
         assertThat(regra.podeIgnorarMaldicao()).isTrue();
     }
 
+    /** Regra da casa: nível pode ser negativo, então em qualquer nível o Orc paga 1 para ignorar a Maldição. */
     @ParameterizedTest
-    @CsvSource({"1,0", "2,1", "9,1"})
-    void orcPerdeUmNivelAoIgnorarMaldicaoMenosNoNivelUm(int nivelAtual, int niveisPerdidos) {
-        assertThat(regra.niveisPerdidosAoIgnorarMaldicao(nivelAtual)).isEqualTo(niveisPerdidos);
+    @ValueSource(ints = {-5, -1, 0, 1, 2, 9, 10, 15, 16})
+    void orcSemprePerdeUmNivelAoIgnorarMaldicaoMesmoFicandoNegativo(int nivelAtual) {
+        assertThat(regra.niveisPerdidosAoIgnorarMaldicao(nivelAtual)).isEqualTo(1);
     }
 
     @ParameterizedTest

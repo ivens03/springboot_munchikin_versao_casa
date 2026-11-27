@@ -1,6 +1,7 @@
 package ivens.versao.casa.munchkin.munchkin.service;
 
 import ivens.versao.casa.munchkin.munchkin.exception.MunchkinNaoEncontradoException;
+import ivens.versao.casa.munchkin.munchkin.exception.VendaDeOuroNaoPermitidaException;
 import ivens.versao.casa.munchkin.munchkin.model.Munchkin;
 import ivens.versao.casa.munchkin.munchkin.model.Raca;
 import ivens.versao.casa.munchkin.munchkin.repository.MunchkinRepository;
@@ -67,6 +68,12 @@ class MunchkinServiceTest {
         assertThat(munchkinService.poderDeCombate(munchkin)).isEqualTo(poderEsperado);
     }
 
+    @Test
+    void todoMunchkinComecaCom400DeOuro() {
+        assertThat(munchkinService.novoJogador().getOuro()).isEqualTo(400);
+        assertThat(munchkinService.novosBots(2)).extracting(Munchkin::getOuro).containsOnly(400);
+    }
+
     /** Vitória clássica (nível 10): vender não pode dar o nível 10. */
     @ParameterizedTest
     @CsvSource({
@@ -78,6 +85,78 @@ class MunchkinServiceTest {
             "5000,9,false",
             "1000,-5,true"   // nível negativo também sobe vendendo
     })
+    void podeVenderOuroComMilEAntesDoNivelDaVitoria(int ouro, int nivel, boolean pode) {
+        Munchkin munchkin = munchkin(ouro, nivel);
+
+        assertThat(munchkinService.podeVenderOuroPorNivel(munchkin, 10)).isEqualTo(pode);
+    }
+
+    @Test
+    void vitoriaPersonalizadaNoNivel1NaoDeixaVenderDoZero() {
+        assertThat(munchkinService.podeVenderOuroPorNivel(munchkin(1000, 0), 1)).isFalse();
+    }
+
+    @Test
+    void venderTrocaMilDeOuroPorUmNivelEOPoderDeCombateAcompanha() {
+        Munchkin munchkin = munchkin(1000, 0);
+
+        munchkinService.venderOuroPorNivel(munchkin, 10);
+
+        assertThat(munchkin.getOuro()).isZero();
+        assertThat(munchkin.getNivel()).isEqualTo(1);
+        assertThat(munchkinService.poderDeCombate(munchkin)).isEqualTo(1);
+    }
+
+    @Test
+    void comNivelNegativoVenderSobeUmNivelEOPoderDeCombateContinuaNegativo() {
+        Munchkin munchkin = munchkin(1000, -3);
+
+        munchkinService.venderOuroPorNivel(munchkin, 10);
+
+        assertThat(munchkin.getNivel()).isEqualTo(-2);
+        assertThat(munchkinService.poderDeCombate(munchkin)).isEqualTo(-2);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"0,1,1", "0,-1,-1", "-3,-2,-5", "8,2,10", "2,0,2"})
+    void mudarNivelSobeOuDesceSemLimiteDeBaixo(int nivel, int niveis, int esperado) {
+        Munchkin munchkin = munchkin(0, nivel);
+
+        munchkinService.mudarNivel(munchkin, niveis);
+
+        assertThat(munchkin.getNivel()).isEqualTo(esperado);
+    }
+
+    @Test
+    void comMaisOuroVendeMaisDeUmaVezUmNivelACadaMil() {
+        Munchkin munchkin = munchkin(2500, 3);
+
+        munchkinService.venderOuroPorNivel(munchkin, 10);
+        munchkinService.venderOuroPorNivel(munchkin, 10);
+
+        assertThat(munchkin.getOuro()).isEqualTo(500);
+        assertThat(munchkin.getNivel()).isEqualTo(5);
+        assertThat(munchkinService.podeVenderOuroPorNivel(munchkin, 10)).isFalse();
+    }
+
+    @ParameterizedTest
+    @CsvSource({"999,0", "1000,9"})
+    void vendaNaoPermitidaNaoMexeNoOuroNemNoNivel(int ouro, int nivel) {
+        Munchkin munchkin = munchkin(ouro, nivel);
+
+        assertThatThrownBy(() -> munchkinService.venderOuroPorNivel(munchkin, 10))
+                .isInstanceOf(VendaDeOuroNaoPermitidaException.class);
+        assertThat(munchkin.getOuro()).isEqualTo(ouro);
+        assertThat(munchkin.getNivel()).isEqualTo(nivel);
+    }
+
+    private static Munchkin munchkin(int ouro, int nivel) {
+        Munchkin munchkin = new Munchkin("Jogador");
+        munchkin.setOuro(ouro);
+        munchkin.setNivel(nivel);
+        return munchkin;
+    }
+
     @Test
     void botsSaoNumeradosComecamHumanosENaoSaoSalvos() {
         List<Munchkin> bots = munchkinService.novosBots(3);

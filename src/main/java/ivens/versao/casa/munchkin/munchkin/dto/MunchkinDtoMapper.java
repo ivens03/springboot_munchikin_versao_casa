@@ -13,6 +13,7 @@ public class MunchkinDtoMapper {
         String maos = PASTA_DAS_MAOS + imagemDasMaos(munchkin.getRaca());
         String costas = PASTA_DAS_MAOS + imagemDasCostasDasMaos(munchkin.getRaca());
         return new MunchkinDto(munchkin.getNome(), munchkin.getRaca().getNome(), munchkin.getNivel(), poderDeCombate,
+                munchkin.getOuro(),
                 maos + "_esquerda.png", maos + "_direita.png",
                 costas + "_esquerda.png", costas + "_direita.png");
     }

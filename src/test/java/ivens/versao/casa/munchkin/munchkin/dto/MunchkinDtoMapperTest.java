@@ -21,10 +21,22 @@ class MunchkinDtoMapperTest {
         assertThat(dto.raca()).isEqualTo("Humano");
         assertThat(dto.nivel()).isZero();
         assertThat(dto.poderDeCombate()).isEqualTo(3);
+        assertThat(dto.ouro()).isEqualTo(400);
         assertThat(dto.imagemDaMaoEsquerda()).isEqualTo("/img/moes/moes_humanas_esquerda.png");
         assertThat(dto.imagemDaMaoDireita()).isEqualTo("/img/moes/moes_humanas_direita.png");
         assertThat(dto.imagemDasCostasDaMaoEsquerda()).isEqualTo("/img/moes/moes_costas_humano_esquerda.png");
         assertThat(dto.imagemDasCostasDaMaoDireita()).isEqualTo("/img/moes/moes_costas_humano_direita.png");
+    }
+
+    @Test
+    void nivelEPoderDeCombateNegativosVaoComoEstaoParaATela() {
+        Munchkin munchkin = new Munchkin("Jogador");
+        munchkin.setNivel(-3);
+
+        MunchkinDto dto = mapper.paraDto(munchkin, -3);
+
+        assertThat(dto.nivel()).isEqualTo(-3);
+        assertThat(dto.poderDeCombate()).isEqualTo(-3);
     }
 
     @ParameterizedTest

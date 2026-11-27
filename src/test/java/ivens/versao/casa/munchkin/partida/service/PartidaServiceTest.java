@@ -10,6 +10,7 @@ import ivens.versao.casa.munchkin.jogo.service.Embaralhador;
 import ivens.versao.casa.munchkin.jogo.service.VitoriaService;
 import ivens.versao.casa.munchkin.munchkin.model.Munchkin;
 import ivens.versao.casa.munchkin.munchkin.service.MunchkinService;
+import ivens.versao.casa.munchkin.partida.exception.ForaDaHoraDeVenderOuroException;
 import ivens.versao.casa.munchkin.partida.exception.OrdemDaMaoInvalidaException;
 import ivens.versao.casa.munchkin.partida.exception.PartidaNaoEncontradaException;
 import ivens.versao.casa.munchkin.partida.model.JogadorDaPartida;
@@ -163,6 +164,50 @@ class PartidaServiceTest {
         assertThatThrownBy(() -> partidaService.reordenarMaoDoJogador(partida.getId(), ordem))
                 .isInstanceOf(OrdemDaMaoInvalidaException.class);
         assertThat(partida.getJogador().getMao()).isEqualTo(maoDoJogador);
+    }
+
+    @Test
+    void naPreparacaoEHoraDeVenderOuroEDepoisDelaNao() {
+        Partida partida = partidaService.criarComMaquina(2, TipoDeVitoria.CLASSICA, null);
+        assertThat(partidaService.horaDeVenderOuro(partida)).isTrue();
+
+        partidaService.confirmarPronto(partida.getId());
+
+        // ainda não existe turno: fora da preparação não há "vez do jogador"
+        assertThat(partidaService.horaDeVenderOuro(partida)).isFalse();
+    }
+
+    @Test
+    void naPreparacaoVendeOuroDoJogadorComONivelDaVitoriaDaPartida() {
+        Partida partida = partidaService.criarComMaquina(2, TipoDeVitoria.CLASSICA, null);
+
+        partidaService.venderOuroPorNivel(partida.getId());
+
+        verify(munchkinService).venderOuroPorNivel(jogador, 10);
+    }
+
+    @Test
+    void foraDaHoraNaoVendeOuro() {
+        Partida partida = partidaService.criarComMaquina(2, TipoDeVitoria.CLASSICA, null);
+        partidaService.confirmarPronto(partida.getId());
+
+        assertThatThrownBy(() -> partidaService.venderOuroPorNivel(partida.getId()))
+                .isInstanceOf(ForaDaHoraDeVenderOuroException.class);
+        verify(munchkinService, never()).venderOuroPorNivel(any(), anyInt());
+    }
+
+    @Test
+    void botaoDeVenderSoComAHoraCertaEComOMunchkinServiceDeixando() {
+        Partida partida = partidaService.criarComMaquina(2, TipoDeVitoria.CLASSICA, null);
+        when(munchkinService.podeVenderOuroPorNivel(jogador, 10)).thenReturn(true);
+        assertThat(partidaService.jogadorPodeVenderOuro(partida)).isTrue();
+
+        when(munchkinService.podeVenderOuroPorNivel(jogador, 10)).thenReturn(false);
+        assertThat(partidaService.jogadorPodeVenderOuro(partida)).isFalse();
+
+        when(munchkinService.podeVenderOuroPorNivel(jogador, 10)).thenReturn(true);
+        partidaService.confirmarPronto(partida.getId());
+        assertThat(partidaService.jogadorPodeVenderOuro(partida)).isFalse();
     }
 
     @Test

@@ -14,10 +14,12 @@ import ivens.versao.casa.munchkin.jogo.model.Vitoria;
 import ivens.versao.casa.munchkin.munchkin.dto.MunchkinDto;
 import ivens.versao.casa.munchkin.munchkin.dto.MunchkinDtoMapper;
 import ivens.versao.casa.munchkin.munchkin.dto.OponenteDto;
+import ivens.versao.casa.munchkin.munchkin.exception.VendaDeOuroNaoPermitidaException;
 import ivens.versao.casa.munchkin.munchkin.model.Munchkin;
 import ivens.versao.casa.munchkin.munchkin.service.MunchkinService;
 import ivens.versao.casa.munchkin.partida.dto.RodadaDto;
 import ivens.versao.casa.munchkin.partida.dto.RodadaDtoMapper;
+import ivens.versao.casa.munchkin.partida.exception.ForaDaHoraDeVenderOuroException;
 import ivens.versao.casa.munchkin.partida.exception.OrdemDaMaoInvalidaException;
 import ivens.versao.casa.munchkin.partida.exception.PartidaNaoEncontradaException;
 import ivens.versao.casa.munchkin.partida.model.JogadorDaPartida;
@@ -168,6 +170,7 @@ class JogarComMaquinaWebTest {
                 .andExpect(model().attribute("rodada", rodadaDto))
                 .andExpect(model().attribute("vitoria", classicaDto))
                 .andExpect(model().attribute("jogador", jogadorDto))
+                .andExpect(model().attribute("podeVenderOuro", false))
                 .andExpect(model().attribute("mao", maoDoJogadorDto))
                 .andExpect(model().attribute("oponentes", List.of(new OponenteDto(botDto, maoDoBotDto))))
                 .andExpect(model().attributeDoesNotExist("distribuindo"));
@@ -190,6 +193,52 @@ class JogarComMaquinaWebTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("rodada--comecou")))
                 .andExpect(content().string(containsString("Que vença o melhor Munchkin!")));
+    }
+
+    @Test
+    void comOuroParaVenderAsInfosDoJogadorTemOBotaoDeVender() throws Exception {
+        mesaDepoisDaPreparacao();
+        when(partidaService.jogadorPodeVenderOuro(partida)).thenReturn(true);
+
+        mockMvc.perform(get(urlDaMesa))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("action=\"" + urlDaMesa + "/vender-ouro\"")))
+                .andExpect(content().string(containsString("Vender 1000 de ouro (+1 nível)")));
+    }
+
+    @Test
+    void semOuroParaVenderNaoTemOBotao() throws Exception {
+        mesaDepoisDaPreparacao();
+
+        mockMvc.perform(get(urlDaMesa))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("vender-ouro"))));
+    }
+
+    @Test
+    void venderOuroVoltaParaAMesa() throws Exception {
+        mockMvc.perform(post(urlDaMesa + "/vender-ouro"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl(urlDaMesa));
+
+        verify(partidaService).venderOuroPorNivel(partida.getId());
+    }
+
+    @Test
+    void vendaDeOuroNaoPermitidaEPedidoInvalido() throws Exception {
+        when(partidaService.venderOuroPorNivel(partida.getId()))
+                .thenThrow(new VendaDeOuroNaoPermitidaException("Jogador", 999, 0, 10));
+
+        mockMvc.perform(post(urlDaMesa + "/vender-ouro"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void venderOuroForaDaHoraEPedidoInvalido() throws Exception {
+        when(partidaService.venderOuroPorNivel(partida.getId())).thenThrow(new ForaDaHoraDeVenderOuroException(1));
+
+        mockMvc.perform(post(urlDaMesa + "/vender-ouro"))
+                .andExpect(status().isBadRequest());
     }
 
     /** Partida na rodada 1, com os mappers devolvendo o mínimo para a página renderizar. */
@@ -266,7 +315,7 @@ class JogarComMaquinaWebTest {
     }
 
     private static MunchkinDto munchkinDto(String nome) {
-        return new MunchkinDto(nome, "Humano", 0, 0,
+        return new MunchkinDto(nome, "Humano", 0, 0, 400,
                 "/img/moes/moes_humanas_esquerda.png", "/img/moes/moes_humanas_direita.png",
                 "/img/moes/moes_costas_humano_esquerda.png", "/img/moes/moes_costas_humano_direita.png");
     }
